@@ -1,0 +1,47 @@
+---
+title: "Welcome To My World"
+author: "José R. Ferrer-Paris"
+date: "2024-05-17"
+categories: [how2]
+---
+
+This is the typical `Hello World!` post in my new and wonderful blog. Welcome!
+
+So this is basically here to test if the whole thing works.
+
+To get started I first installed quarto.[Well to be honest, it all started with a operating system, then installing lots of packages, and R and Python, and ... but let's keep it short.]
+
+Then, once I decided how to name my blog, I ran:
+
+```sh
+quarto create project blog spatial-one
+```
+
+Then I started to prepare the content and structure of my initial posts, modified the text in the `qmd` files and the configuration in the `_quarto.yml` and ran 
+
+I started to keep track of changes with git...
+
+```sh
+cd spatial-one
+git init
+```
+
+I switch between VS-code, Rstudio and the terminal to organise my files, and kept working on this until I got something I wanted to preview:
+
+```sh
+quarto preview spatial-one
+```
+
+Here some random notes about the process
+
+## icons
+
+For some reason I though these would fontsawesome icons, but the help prompt in VS-code pointed out:
+
+> Name of bootstrap icon (e.g. github, twitter, share). See https://icons.getbootstrap.com/ for a list of available icons
+
+
+
+![](thumbnail.jpg)
+
+Since this post doesn't specify an explicit `image`, the first image in the post will be used in the listing page of posts.

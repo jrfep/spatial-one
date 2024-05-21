@@ -1,0 +1,21 @@
+---
+title: "About"
+image: profile.jpg
+about:
+  template: jolla
+  links:
+    - icon: droplet
+      text: ORCiD
+      href: https://orcid.org/0000-0002-9554-3395
+    - icon: wind
+      text: Google Scholar
+      href: https://scholar.google.es/citations?user=A2Thq5UAAAAJ&hl=en
+    - icon: fire
+      text: Github
+      href: https://github.com/jrfep
+    - icon: globe-americas
+      text: Página personal
+      href: https://jrfep.github.io
+---
+
+About this blog
