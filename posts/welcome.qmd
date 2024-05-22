@@ -1,0 +1,113 @@
+---
+title: "Welcome To My World"
+author: "José R. Ferrer-Paris"
+date: "2024-05-17"
+categories: [how2]
+engine: knitr
+---
+
+This is the typical `Hello World!` post in my new and wonderful blog. Welcome!
+
+So this is basically here to test if the whole thing works.
+
+To get started I first installed quarto.[Well to be honest, it all started with a operating system, then installing lots of packages, and R and Python, and ... but let's keep it short.]
+
+Then, once I decided how to name my blog, I ran:
+
+```sh
+quarto create project blog spatial-one
+```
+
+Then I started to prepare the content and structure of my initial posts, modified the text in the `qmd` files and the configuration in the `_quarto.yml` and ran 
+
+I started to keep track of changes with git:^[If we do this before rendering or preview of the site, *quarto* will create a `.gitignore` file with the line `/.quarto/`.]
+
+```sh
+cd spatial-one
+git init
+```
+
+I switch between VS-code, Rstudio and the terminal to organise my files, and kept working on this until I got something I wanted to preview:
+
+```sh
+quarto preview spatial-one
+```
+
+Here some random notes about the process
+
+## icons
+
+For some reason I though these would fontsawesome icons, but the help prompt in VS-code pointed out:
+
+> Name of bootstrap icon (e.g. github, twitter, share). See https://icons.getbootstrap.com/ for a list of available icons
+
+## Freeze
+
+The posts directory has a `_metadata.yml` file with the `freeze` option activated by default.
+
+## `_site` folder
+
+In the quarto documentation they recommend to add it to the `.gitignore` file, so as to keep the raw content and code in version control, but the output served in a different workflow (either with quarto.pub or GitHub actions).
+
+## Secrets
+
+There are certain environment variables that need to be specified in order to render the posts in this blog. I created an `_environment.required` file with the list of required variables and empty values.
+
+```{bash filename = "_environment.required"}
+#| eval: false
+FLICKR_API_KEY=
+```
+
+For local development, I defined these variables in the `_environment.local` file and ignore this file in version control by adding `/_*.local` in `.gitignore`. 
+
+## Photos
+
+### From Flickr
+
+In order to use some external photos in my blog posts I create a table with the basic information from my photo collection in Flickr. I need to add this code-chunk in my post to locate and load the file:
+
+```{r}
+#| echo: fenced
+#| message: false
+here::i_am("posts/welcome.qmd")
+data_dir <- here::here("Rdata")
+file_name <- here::here(data_dir, "flickr-photos.rds")
+photos <- readRDS(file = file_name)
+```
+
+And these lines to create the markdown code to include in my blog post (notice the `results` option):
+
+```{r}
+#| echo: fenced
+#| results: asis
+selected_photo <- dplyr::slice(photos, grep("Del-etreando", title))
+
+photo_md <- sprintf(
+  "![**%s** by %s@flickr](%s){.preview-image .lightbox}",
+  selected_photo$title,
+  selected_photo$ownername,
+  selected_photo$url_m
+)
+
+cat(photo_md)
+```
+
+I add the class `preview-image` to select which foto will appear in the listing page of posts.
+
+### From other places
+
+I keep some random images in the `thesaurus` folder and use `imagemagick` to make copies for my blog post. For example:
+
+
+```{bash}
+#| eval: false
+convert thesaurus/207d9efb-e858-4c4c-81ab-ac056f72c870.jpeg -resize 300x300 posts/wms-in-R/image.jpg 
+```
+
+## Publish
+
+I am preparing this site for my quarto.pub profile.
+
+
+
+

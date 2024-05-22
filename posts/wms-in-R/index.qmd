@@ -4,6 +4,7 @@ author: "José R. Ferrer-Paris"
 date: "2024-05-20"
 categories: [MWS, R code, leaflet]
 image: "image.jpg"
+image-alt: "Generated with AI ∙ May 21, 2024 at 5:03 PM"
 ---
 
 ## Maps are like cakes!

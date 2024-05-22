@@ -1,0 +1,77 @@
+---
+title: "A threasure trove of images"
+author: "José R. Ferrer-Paris"
+date: "2024-05-18"
+categories: [how2, flickr, API, R code]
+---
+
+So, I think I need some photos in my website, and I have a Flickr account, and I use R. 
+
+There should be a library that... Oh yes! found it!
+
+<https://koki25ando.github.io/FlickrAPI/>
+
+```{r}
+#| eval: false
+install.packages("FlickrAPI")
+```
+
+Now I need a [Flickr API key](https://www.flickr.com/services/developer/). Once I have the key I can save it as an environment variable and call it from R:
+
+```{r}
+library(FlickrAPI)
+setFlickrAPIKey(api_key = Sys.getenv("FLICKR_API_KEY"))
+```
+
+I can query up to 1000 photos from one user using the `getPhotos` function. But I figured out that I could use a `foreach` loop to run and combine multiple queries.
+
+```{r}
+library(foreach)
+library(dplyr)
+
+photos <- foreach(
+  the_user=c("jferrer", "jferrer", "199798864@N08"), 
+  the_page=c(1,2,1),
+  .combine = "bind_rows") %do% {
+  getPhotos(
+    user_id = the_user, 
+    img_size="m", 
+    extras = c("description", "owner_name", "url_m"), 
+    per_page=1000, 
+    page=the_page)
+}
+
+dim(photos)
+```
+
+Now I have a collection of photos in R and I can select one by title or any other criteria:
+
+```{r}
+selected_photo <- slice(photos, grep("N/W", title))
+```
+
+And combine the R and markdown magic to show the photo in this document:
+
+```{r}
+#| results: asis
+photo_md <- sprintf(
+  "![**%s** by %s@flickr](%s){.preview-image .lightbox}",
+  selected_photo$title,
+  selected_photo$ownername,
+  selected_photo$url_m
+)
+
+cat(photo_md)
+```
+
+If I want to save the information for future use in my blog, I need first to create a folder to hold the file, and then save the R object into an RDS file. Like this:
+
+```{r}
+here::i_am("posts/foto-collection.qmd")
+data_dir <- here::here("Rdata")
+if (!dir.exists(data_dir))
+  dir.create(data_dir)
+file_name <- here::here(data_dir, "flickr-photos.rds")
+saveRDS(file = file_name, photos)
+```
+

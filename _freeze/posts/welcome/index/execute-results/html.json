@@ -1,0 +1,15 @@
+{
+  "hash": "6344c4f4993dbbb43d3781523103795a",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Welcome To My World\"\nauthor: \"José R. Ferrer-Paris\"\ndate: \"2024-05-17\"\ncategories: [how2]\nengine: knitr\n---\n\n\nThis is the typical `Hello World!` post in my new and wonderful blog. Welcome!\n\nSo this is basically here to test if the whole thing works.\n\nTo get started I first installed quarto.[Well to be honest, it all started with a operating system, then installing lots of packages, and R and Python, and ... but let's keep it short.]\n\nThen, once I decided how to name my blog, I ran:\n\n```sh\nquarto create project blog spatial-one\n```\n\nThen I started to prepare the content and structure of my initial posts, modified the text in the `qmd` files and the configuration in the `_quarto.yml` and ran \n\nI started to keep track of changes with git:^[If we do this before rendering or preview of the site, *quarto* will create a `.gitignore` file with the line `/.quarto/`.]\n\n```sh\ncd spatial-one\ngit init\n```\n\nI switch between VS-code, Rstudio and the terminal to organise my files, and kept working on this until I got something I wanted to preview:\n\n```sh\nquarto preview spatial-one\n```\n\nHere some random notes about the process\n\n## icons\n\nFor some reason I though these would fontsawesome icons, but the help prompt in VS-code pointed out:\n\n> Name of bootstrap icon (e.g. github, twitter, share). See https://icons.getbootstrap.com/ for a list of available icons\n\n## Freeze\n\nThe posts directory has a `_metadata.yml` file with the `freeze` option activated by default.\n\n## `_site` folder\n\nIn the quarto documentation they recommend to add it to the `.gitignore` file, so as to keep the raw content and code in version control, but the output served in a different workflow (either with quarto.pub or GitHub actions).\n\n## Secrets\n\nThere are certain environment variables that need to be specified in order to render the posts in this blog. I created an `_environment.required` file with the list of required variables and empty values.\n\nFor local development, I defined these variables in the `_environment.local` file and ignore this file in version control by adding `/_*.local` in `.gitignore`. \n\n\n::: {.cell filename='_environment.required'}\n\n```{.bash .cell-code}\nFLICKR_API_KEY=\n```\n:::\n\n\n## Publish\n\nI am preparing this site for my quarto.pub profile.\n\n\n\n\n![](thumbnail.jpg)\n\nSince this post doesn't specify an explicit `image`, the first image in the post will be used in the listing page of posts.\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}
