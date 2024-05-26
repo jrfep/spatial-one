@@ -1,5 +1,5 @@
 ---
-title: "Spatial-one"
+title: "This is my favourite planet so far"
 listing:
   contents: posts
   sort: "date desc"

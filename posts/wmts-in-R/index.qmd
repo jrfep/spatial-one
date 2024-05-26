@@ -1,0 +1,296 @@
+---
+title: "Exploring New South Wales from my Desktop"
+subtitle: "Using NSW spatial service layers in R"
+author: "José R. Ferrer-Paris"
+date: "2024-05-26"
+categories: [WMTS, R code, leaflet, Australia, iNaturalist]
+from: markdown+emoji
+---
+
+## JR the (virtual) explorer!
+
+Believe it or not, I do not spend my whole time sitting in front of my Desktop computer. Sometimes I do get out and explore this wonderful country, look:
+
+```{r}
+#| results: asis
+#| echo: false
+#| message: false
+#| warning: false
+library(dplyr)
+here::i_am("posts/wmts-in-R/index.qmd")
+data_dir <- here::here("Rdata")
+file_name <- here::here("Rdata","iNaturalist-obs-NeoMapas.rds")
+user_obs <- readRDS(file=file_name)
+selected_photo <- user_obs |> slice(grep("NSW", place_guess)) |> slice_sample(n=12)
+photo_md <- sprintf(
+  "![*%s* observed in %s by [%s@iNaturalist](%s)](%s){height=150 group=\"my-gallery\" .lightbox .preview-image}",
+  selected_photo$species_guess,
+  selected_photo$place_guess,
+  selected_photo$user_login,
+  selected_photo$url,
+  selected_photo$image_url
+)
+
+cat(photo_md)
+```
+
+But yeah, most of the time I am **exploring the world through geospatial data**. And since I am clearly obsessed with reproducible workflows, I want to code my way through the process, and make sure I can produce the building blocks for future virtual explorations.
+
+So I asked myself this question, How do I make a good base map for exploring New South Wales (Australia) in as few lines of code as possible? Well it seems [NSW Spatial Services](https://www.spatial.nsw.gov.au) has the data that I need! 
+
+Today I will create a minimal example for creating a dynamic map using these layers, R and the `leaflet` package.
+
+## Data from Spatial NSW
+
+If you navigate from the NSW Spatial Services to the [Web services](https://www.spatial.nsw.gov.au/products_and_services/web_services) pages you will find that:
+
+> Web services are released under open access licences as part of the NSW Government Open Data Policy to support new and innovative uses of NSW Government digital information.
+
+That is great, lets do some new and innovative uses of the digital information!
+
+There are many [data in different themes](https://portal.spatial.nsw.gov.au/portal/apps/sites/#/homepage/pages/nsw-data-themes) to choose from: Imagery, Land Cover, Physiography...
+
+The documentation in their webpage focuses on two supported protocols here REST API and WMS, and the favourite GIS software of many users. But what about the few of us with different taste?. I though my use case would fall within the [Advanced User Guide](https://www.spatial.nsw.gov.au/products_and_services/web_services/advancedguide), but it seems I still needed to sort out many details to get it to work in R using the `leaflet` package. 
+
+## This is how it's done
+
+Short and sweet in as few lines of code as possible:
+
+```{r}
+#| eval: false
+
+# Have you met Leaflet.JS?
+library(leaflet)
+
+# URL for the MapServer
+NSW_basemap_url <- 
+    "http://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Base_Map/MapServer/WMTS"
+
+# Build a request for the server
+NSW_basemap_layer <- "&layer=public_NSW_Base_Map"
+
+nsw_basemap <- paste0(
+    NSW_basemap_url,
+    "?Request=GetTile",
+    "&Service=WMTS",
+    "&Version=1.0.0",
+    "&Style=default",
+    "&tilematrixset=default028mm",
+    "&Format=image/jpgpng",
+    NSW_basemap_layer,
+    "&TileMatrix={z}",
+    "&TileRow={y}",
+    "&TileCol={x}"
+  )
+
+# Don't forget the attribution
+attrib_string <- 
+    sprintf(" © State of New South Wales, Department of Customer Service, Spatial Services %s", 
+    date()
+)
+
+# Create a map with this tile set
+leaflet() |>
+    setView(lng = 151.2365, lat = -33.916, zoom = 15) |>
+    addTiles(urlTemplate = nsw_basemap,
+           attribution = attrib_string,
+           group = 'NSW basemap'
+           ) 
+```
+
+## Code explained
+
+Ok, now let's go over the code and describe the steps in more detail. This will help you understand the process better and provide more info on how to adapt this example to your needs.
+
+### Have you met Leaflet.JS?
+
+I have probably said this before, but **Leaflet JS** <https://leafletjs.com/> is probably the most popular open-source JavaScript library for mobile- and web-friendly interactive maps. With an easy to use and well-documented API, many developers have contributed libraries, modules, plug-ins and interfaces to implement leaflet maps from your favourite programming languages and development platforms. Here we are using the R package <https://rstudio.github.io/leaflet/> to integrate these JS functions in R.
+
+```{r}
+library(leaflet)
+```
+
+### URL for the MapServer
+
+We need the address of the MapServer that hold the layer we want to display. This step is not as easy as it should be, but with patience you will get there. The spatial portal has so many levels of information, you can easily click around in circles without getting the info you need. 
+
+So here is one possible way **NOT** to get there:
+
+- Start at https://www.spatial.nsw.gov.au
+    - Click on [NSW Spatial Collaboration Portal](https://portal.spatial.nsw.gov.au/portal/apps/sites/#/homepage)
+        - Go to [Browse Data](https://portal.spatial.nsw.gov.au/portal/apps/sites/#/homepage/pages/nsw-data-themes)
+            - Select a theme, for example [Imagery and Landcover](https://portal.spatial.nsw.gov.au/portal/home/search.html?q=&start=1&num=20&sortField=numviews)
+                - Within the theme, select the web map you want, for example [NSW Imagery Basemap Service](https://portal.spatial.nsw.gov.au/portal/home/item.html?id=ae273ee6312d4e1e83ee7b3a9565abdf)
+                    - You can see this is getting silly, click on the 'Open in Map Viewer' and despair...
+
+So finally we have the URL:
+
+```{r}
+# URL for the MapServer
+NSW_basemap_url <- 
+    "http://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Base_Map/MapServer/WMTS"
+```
+
+### Build a request for the server
+
+Now we need to build a request for the server.
+
+This starts with getting the capabilities of the server by visiting this url in a browser:
+
+```{r}
+paste0(NSW_basemap_url, "?Request=GetCapabilities")
+```
+
+You will get a document in XML format that has the information we need for the next request. 
+
+For example the layer identifier:
+
+```xml
+<Layer>
+<ows:Title>public_NSW_Base_Map</ows:Title>
+<ows:Identifier>public_NSW_Base_Map</ows:Identifier>
+...
+```
+
+Also Style:
+
+```xml
+<Style isDefault="true">
+<ows:Title>Default Style</ows:Title>
+<ows:Identifier>default</ows:Identifier>
+</Style>
+```
+
+And others...
+
+And then we concatenate the mapserver url and the layer name with a couple of parameters needed in our WMTS `GetTile` request:
+```{r}
+nsw_basemap <- paste0(
+    NSW_basemap_url,
+    # Service (version) request 
+    "?Service=WMTS", 
+    "&Request=GetTile", 
+    "&Version=1.0.0", 
+    # the following need to match the details in the GetCapabbilities request
+    "&Style=default", # usually there is only one style
+    "&tilematrixset=default028mm", # usually default028mm or GoogleMapsCompatible
+    "&Format=image/png", # check the available format, sometime it is image/jpgpng
+    "&layer=public_NSW_Base_Map", # check the name of the layer
+    # The x,y,z dimensions dynamically requested
+    # based on the zoom and coordinates of the viewer window
+    "&TileMatrix={z}", 
+    "&TileRow={y}",
+    "&TileCol={x}"
+  )
+```
+
+
+### Don't forget the attribution
+```{r}
+attrib_string <- 
+    sprintf(" © State of New South Wales, Department of Customer Service, Spatial Services %s", 
+    date()
+)
+```
+
+### Create a map with this tile set
+
+```{r}
+leaflet() |>
+    setView(lng = 151.2365, lat = -33.916, zoom = 15) |>
+    addTiles(urlTemplate = nsw_basemap,
+           attribution = attrib_string,
+           group = 'NSW basemap'
+           ) 
+```
+
+## And here some bonus tips
+
+### Other layers from same base URL :grinning:
+
+Now that this is working, I got curious about other layers available in the same portal. 
+
+Some of the sources have the same base url and we just need to change the name of the layer, for example we can use a function in package `stringr` to replace the base map with imagery: 
+
+```{r}
+library(stringr)
+nsw_imagery <- str_replace_all(nsw_basemap, "NSW_Base_Map", "NSW_Imagery") 
+leaflet() |>
+  setView(lng = 151.2365, lat = -33.916, zoom = 14) |>
+  addTiles(urlTemplate = nsw_imagery,
+           attribution = attrib_string
+           ) 
+```
+
+### Other layers from other base URL :confused:
+
+I also found historical aerial photographs, but the base url is different and for some reason I have been unable to create a request that works in leaflet, this code seems to be right, but the result is blank:
+
+```{r}
+nsw_historical <- paste0(
+    "https://portal.spatial.nsw.gov.au/tileservices/Hosted/HistoricalImagery1947/MapServer/",
+    "WMTS?",
+    "Request=GetTile",
+    "&Service=WMTS",
+    "&Version=1.0.0",
+    "&Style=default",
+    "&tilematrixset=default028mm",
+    "&Format=image/jpgpng",
+    "&layer=HistoricalImagery1947",
+    "&TileMatrix={z}",
+    "&TileRow={y}",
+    "&TileCol={x}"
+  )
+leaflet() |>
+  setView(lng = 151.2365, lat = -33.916, zoom = 14) |>
+  addTiles(urlTemplate = nsw_historical,
+           attribution = attrib_string
+           ) 
+```
+
+There are also some datsets using *Vector tile layers*, for example:
+
+```sh
+https://portal.spatial.nsw.gov.au/vectortileservices/rest/services/Hosted/NSW_BaseMap_VectorTile_Hybrid/VectorTileServer
+```
+
+I haven't yet figured out how to add them in Leaflet.
+
+
+### Multiple layers in one map :globe_with_meridians:
+
+Now we have at least two base layers, and we would like to display both in a map. We can do that with help of the `addLayersControl` function using the argument `baseGroups` to identify the groups of layers to choose from:
+
+```{r}
+leaflet() |>
+  setView(lng = 151.2365, lat = -33.916, zoom = 14) |>
+  addTiles(urlTemplate = nsw_basemap,
+           attribution = attrib_string,
+           group = 'NSW base map'
+           ) |>
+   addTiles(urlTemplate = nsw_imagery,
+           attribution = attrib_string,
+           group = 'NSW imagery'
+           ) |>
+    addLayersControl(
+        baseGroups = c("NSW imagery", "NSW base map"))
+```
+
+## Conclusion
+
+Here we use R and leaflet to load geospatial layers using WMTS services. Thanks to NSW Spatial service for the awesome products!
+
+Here the basic recipe:
+
+- Find the WMTS server,
+- Send a `GetCapabilities` request
+- Identify the layer of interest and other parameters,
+- Build your WMTS request, 
+- Add the layer to your leaflet map using the `addTile` function
+- Optional:
+   - Repeat with other layers
+   - Add a layers control with `addLayersControl` function
+- Done!
+
+I hope this makes it easier for you to create your maps visualisations with R. Enjoy!
+

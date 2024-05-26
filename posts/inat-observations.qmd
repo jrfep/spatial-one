@@ -1,0 +1,64 @@
+---
+title: "iNaturalist: my observations from around the world"
+author: "José R. Ferrer-Paris"
+date: "2024-05-18"
+categories: [how2, iNaturalist, API, R code]
+---
+
+It might be nice to share some of my iNaturalist observations in this blog. So I decided to create a backup of observations to quickly add them to my posts.
+
+To get the data I first install the `rinat` package:
+
+```{r}
+#| eval: false
+install.packages("rinat")
+```
+
+Then I can download the observations from iNaturalist:
+
+```{r}
+#| eval: true
+library(rinat)
+library(dplyr)
+user_obs <- get_inat_obs_user("NeoMapas",maxresults = 5000)
+```
+
+
+```{r}
+glimpse(user_obs)
+
+```
+
+Now I have a collection of photos in R and I can select one by title or any other criteria:
+
+```{r}
+selected_photo <- slice(user_obs, 500)
+```
+
+And combine the R and markdown magic to show the photo in this document:
+
+```{r}
+#| results: asis
+photo_md <- sprintf(
+  "![*%s* observed in %s by %s@iNaturalist](%s){.preview-image .lightbox}",
+  selected_photo$species_guess,
+  selected_photo$place_guess,
+  selected_photo$user_login,
+  selected_photo$image_url
+)
+
+cat(photo_md)
+```
+
+If I want to save the information for future use in my blog, I need first to create a folder to hold the file, and then save the R object into an RDS file. Like this:
+
+
+```{r}
+
+here::i_am("posts/foto-collection.qmd")
+data_dir <- here::here("Rdata")
+file_name <- here::here("Rdata","iNaturalist-obs-NeoMapas.rds")
+saveRDS(file=file_name, user_obs)
+
+```
+

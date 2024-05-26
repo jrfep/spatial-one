@@ -1,5 +1,5 @@
 ---
-title: "About"
+title: "This is me"
 image: profile.jpg
 about:
   template: jolla
@@ -18,4 +18,9 @@ about:
       href: https://jrfep.github.io
 ---
 
-About this blog
+My name is José Rafael Ferrer Paris, or JR for short. 
+
+I am an ecologists with a very spatial (sometimes even geospatial) mindset.
+
+I started my journey in Venezuela, have been to Germany, South Africa and Colombia and I currently live and work in [Sydney](index.qmd#category=Sydney), Australia. 
+
