@@ -149,10 +149,33 @@ I keep some random images in the `thesaurus` folder and use `imagemagick` to mak
 convert thesaurus/207d9efb-e858-4c4c-81ab-ac056f72c870.jpeg -resize 300x300 posts/wms-in-R/image.jpg 
 ```
 
-## Publish
+## Publish / Code
 
-I am preparing this site for my quarto.pub profile.
+### On Github
 
+I created an empty repo in GitHub and then added it as a remote:
+
+```{bash}
+#| eval: false
+git remote add origin git@github.com:{...}/{...}.git
+git branch -M dont-panic
+git push -u origin dont-panic
+```
+
+Now the source code and git history is available at: <https://github.com/jrfep/spatial-one>
+
+### Quarto Pub
+
+I am preparing this site for my quarto.pub profile. From the directory where this project is located, I executed the quarto publish command for Quarto Pub:
+
+```{bash}
+#| eval: false
+quarto publish quarto-pub
+```
+
+And then followed [instructions at quarto.org](https://quarto.org/docs/publishing/quarto-pub.html).
+
+Easy!
 
 
 

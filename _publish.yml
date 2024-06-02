@@ -1,0 +1,4 @@
+- source: project
+  quarto-pub:
+    - id: 206a80a9-027d-4eba-b44b-6e3c08e6f67b
+      url: 'https://jrfep.quarto.pub/the-spatial-one'

@@ -1,0 +1,24 @@
+---
+title: "More from me"
+image: profile.jpg
+---
+
+You can explore more of my content in several places:
+
+- At my [personal site](https://jrfep.github.io) (En español)
+- At my [UNSW research profile](https://research.unsw.edu.au/people/dr-jose-rafael-ferrer-paris)
+
+# My projects
+
+## The IUCN Global Ecosystem Typology
+
+Explore the [global-ecosystems](https://global-ecosystems.org) webapp
+
+## The IUCN Red List of Ecosystems
+
+I have contributed multiple assessments for:
+- [Tropical glaciers](https://red-list-ecosystem.github.io/T6.1-SA-01-VE-01-Cordillera-Merida/)
+
+## NeoMapas
+
+NeoMapas website at <https://neomapas.github.io>
