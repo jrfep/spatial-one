@@ -13,6 +13,9 @@ website:
         href: https://jrfep.github.io
   search: true
   repo-url: https://github.com/jrfep/spatial-one
+  comments:
+    giscus: 
+      repo: jrfep/spatial-one
 
 format:
   html:

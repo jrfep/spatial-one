@@ -43,8 +43,7 @@ For some reason I though these would fontsawesome icons, but the help prompt in 
 
 Also, it turns out we can add emojis to the text of a post using this in the front-matter of the file:
 
-```{yaml}
-#| eval: false
+``` yaml
 ---
 title: "My Document"
 from: markdown+emoji
@@ -163,6 +162,23 @@ git push -u origin dont-panic
 ```
 
 Now the source code and git history is available at: <https://github.com/jrfep/spatial-one>
+
+### Comments through Giscus
+
+How to get comments powered by GitHub Discussions and the giscus app?
+
+1. Enable the [Discussions feature](https://docs.github.com/en/discussions/quickstart) in the GitHub repo
+2. Install the [giscus app](https://github.com/apps/giscus) in the GitHub account
+3. [Enable comments](https://quarto.org/docs/output-formats/html-basics.html#commenting) in the _quarto.yml file:
+
+``` yaml
+---
+website:
+  comments:
+    giscus: 
+      repo: jrfep/spatial-one
+---
+```
 
 ### Quarto Pub
 

@@ -16,6 +16,7 @@ about:
     - icon: globe-americas
       text: Página personal
       href: https://jrfep.github.io
+comments: false
 ---
 
 My name is José Rafael Ferrer Paris, or JR for short. 

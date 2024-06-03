@@ -1,6 +1,7 @@
 ---
 title: "More from me"
 image: profile.jpg
+comments: false
 ---
 
 You can explore more of my content in several places:
