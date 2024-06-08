@@ -1,0 +1,141 @@
+---
+title: "Mapbox layers in R"
+author: "José R. Ferrer-Paris"
+date: "2024-06-04"
+categories: [R code, leaflet, Venezuela, Mangroves]
+draft: true
+---
+
+
+```{r}
+require(dplyr)
+require(units)
+require(leaflet)
+require(DT)
+require(sf)
+options(dplyr.summarise.inform = FALSE)
+```
+
+# Mangroves in the IUCN Red List of Ecosystems database
+
+The [IUCN Red List of Ecosystems database](https://assessments.iucnrle.org) is an on-going effort to document all IUCN RLE assessments.
+
+So far the *IUCN Red List of Ecosystem* assessments that focus on mangrove are mostly concerned with local or national units. The continental assessment of forest of the Americas (Ferrer-Paris et al. 2019) include two large mangrove units (Atlantic and Caribbean vs. Pacific Mangroves), but did not consider further subdivision of the units, and did not consider the marine components of the mangrove ecosystems.
+
+
+## List of publications with assessments
+
+Here we show a selection of references that include assessments of Mangrove units. Some of these references are systematic assessments of terrestrial or marine ecosystems at a national or continental scale. Other references describe strategic assessment of selected local/regional units.
+
+```{r}
+#| eval: false
+lks <- asm_links %>% filter(is.na(eco_id)) %>% transmute(asm_id, url=sprintf("<a href='%s' target='_blank'>%s</a>",URLdecode(url),url_description)) %>% group_by(asm_id) %>% summarise(links=paste(url,collapse=" :: "))
+
+asms <- assessments %>% left_join(lks,by="asm_id") %>% transmute(`Reference`=ref_code,`Assessment`=name,`Protocol`=assessment_protocol_code,`Link`=links)
+
+DT::datatable(asms,escape=FALSE)
+```
+
+## Assessment units
+Some of the assessments above include multiple units, and some units are distributed across multiple countries. The list of assessment units can be filtered by country using the ISO two letter code. The table includes links to assessment information or documents where these are available.
+
+```{r}
+#| eval: false
+lks <- asm_links %>% filter(!is.na(eco_id)) %>% transmute(eco_id, url=sprintf("<a href='%s' target='_blank'>%s</a>", URLdecode(url), url_description)) %>% group_by(eco_id) %>% summarise(links=paste(url, collapse=" :: "))
+
+
+au <- asm_units %>% mutate(iso2=strsplit(gsub("\\{|\\}","",asm_units$countries),",")) %>% left_join(lks,by='eco_id')
+
+slc.countries <- unique(unlist(au %>% select(iso2)))
+
+selectInput("country", "Countries and territories",
+                         structure(slc.countries,
+                                   names=slc.countries), multiple=TRUE)
+
+
+## add filter by category? level?
+
+DT::renderDataTable({
+  if (is.null(input$country)) {
+    ss <- rep(TRUE,nrow(au))
+  } else {
+    ss <-   sapply(au$iso2,function(x) any(x %in% input$country),simplify=T)
+  }
+
+  au %>%
+    filter(ss) %>%
+    transmute(name=eco_name_orig, lang=eco_name_lang, Reference=ref_code, level, category=overall_risk_category, bounds=risk_category_bounds, links)
+  },escape=FALSE)
+```
+
+This maps show the location of some of those assessment units with spatial data in the database on top of the indicative distribution map for the **MFT1.2 Intertidal Forest and Shrublands** ecosystem functional group. Currently this map is based on the mangrove distribution data of Giri et al. (2011). But this will be updated soon.
+
+https://docs.mapbox.com/api/maps/styles/
+```{r}
+#| fig-height: 8
+#| fig-width: 8 
+#bf <- read_sf("assets/aux/MFT1.2_buffer.topo.json")
+mb_style <- "jrfep/ckspr4rl70jch17pg3rnix3fz"
+mb_token <- Sys.getenv("MAPBOX_TOKEN")
+mb_url <- "https://api.mapbox.com/styles/v1/%s/tiles/{z}/{x}/{y}?access_token=%s"
+
+mb_style <- "mapbox/satellite-v9"
+
+my_url <- sprintf(mb_url, mb_style, mb_token)
+
+my_attribution <- "© <a href='https://www.mapbox.com/map-feedback/'>Mapbox</a> CC-BY-4.0 <a href='https://global-ecosystems.org/explore/groups/MFT1.2'>IUCN Global Ecosystem Typology</a>"
+
+occ <- factor(c("major","minor"))
+
+DPcolors <- c(rgb(193,15,2,255,max=255), rgb(247,157,150,255,max=255))
+
+##st_labels <- sprintf("<strong>%s</strong><br/>%s<br/>Category: <strong>%s</strong>",
+##                        asm_xy$eco_name_orig, asm_xy$ref_code, asm_xy$overall_risk_category ) %>%
+##      lapply(htmltools::HTML)
+##    st_icons <- icons(
+##      iconUrl = sprintf("assets/icons/%s.png",tolower(asm_xy$overall_risk_category)),
+##      iconWidth = 20, iconHeight = 20
+##    )
+
+leaflet() |> 
+    setView(lng = 0, lat = 0, zoom = 2) |>
+    addTiles(
+        urlTemplate = my_url,
+        attribution = my_attribution) |>
+  #addPolygons(data = bf, color = 'yellow', fill=FALSE, weight = 2, fillOpacity = 0.15, group='Outline') %>%
+  #addMarkers(data = asm_xy,icon = st_icons,
+  #                 label=st_labels,
+                   # clusterOptions = st_cluster,
+  #                 group="RLE assessments") %>%
+  addLayersControl(
+          overlayGroups = c("Outline","RLE assessments"),
+          options = layersControlOptions(collapsed = FALSE),
+          position = "topright"
+        ) |>
+  addLegend(colors = DPcolors, labels = c("major","minor"), opacity = 1.0,
+            title = "Occurrence", position = "topright")
+```
+
+Using the Mapbox raster tile api: https://docs.mapbox.com/api/maps/raster-tiles/
+Convert coordinates to Slippy map tilenames: https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+Use image magick to download image and display:
+```{r}
+library(magick)
+
+# https://api.mapbox.com/v4/{tileset_id}/{zoom}/{x}/{y}{@2x}.{format}
+latlong_mb <- function(lat_deg, lon_deg, zoom, tileset_id, format="@2x.jpg", token=mb_token){
+  lat_rad <- lat_deg * pi /180
+  n <- 2.0 ^ zoom
+  xtile <- floor((lon_deg + 180.0) / 360.0 * n)
+  ytile = floor((1.0 - log(tan(lat_rad) + (1 / cos(lat_rad))) / pi) / 2.0 * n)
+  return( sprintf("https://api.mapbox.com/v4/%s/%s/%s/%s.%s?access_token=%s",
+    tileset_id, zoom, xtile, ytile, format, token))
+
+}
+
+## pico humboldt 8.549661, -70.996142
+## Punc ak Jaya-4.078889, 137.158333
+url <- latlong_mb(-4.078889, 137.158333, 15, tileset_id = "mapbox.satellite")
+raw_img <- image_read(url)
+image_ggplot(raw_img)
+```

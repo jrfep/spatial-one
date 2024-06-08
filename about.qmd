@@ -21,7 +21,7 @@ comments: false
 
 My name is José Rafael Ferrer Paris, or JR for short. 
 
-I am an ecologists with a very spatial (sometimes even geospatial) mindset.
+I am an ecologist with a very spatial (sometimes even geospatial) mindset.
 
 I started my journey in Venezuela, have been to Germany, South Africa and Colombia and I currently live and work in [Sydney](index.qmd#category=Sydney), Australia. 
 
