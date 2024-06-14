@@ -3,3 +3,5 @@ _site
 /_*.local
 /thesaurus
 /sandbox/
+.Rproj.user
+.venv

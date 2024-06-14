@@ -1,0 +1,179 @@
+---
+subtitle: "Exploring the Vegetation of New South Wales"
+title: "Using rasterio with a categorical map"
+author: "José R. Ferrer-Paris"
+date: "2024-05-29"
+categories: [python, rasterio, vegetation, Australia]
+from: markdown+emoji
+editor_options: 
+  chunk_output_type: console
+engine: jupyter
+---
+
+I want to explore the vegetation of New South Wales in a couple of post using different packages and modules. I will start today with `Python` and my first question is how to work with a *categorical map* and its *value attribute table*.
+
+## Import the modules
+
+First I use the import statements to load the modules I will use in this session. I will be using read functions from [GeoPandas](https://geopandas.org/en/stable/docs/user_guide.html) and [Rasterio](https://rasterio.readthedocs.io/en/stable/index.html) and a couple of helper funcitons from [EarthPy](https://earthpy.readthedocs.io/en/latest/get-started.html) as well as the usual suspects [matplotlib](https://matplotlib.org/stable/), numpy and pandas.
+
+```{python}
+import geopandas as gpd
+import pandas as pd
+import rasterio
+from rasterio import windows
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import earthpy.plot as ep
+```
+
+## The data
+
+I will use the Vegetation Formations and Classes of NSW Version 3.03 (Keith and Simpson 2012; updated in 2017). The spatial data is available at the SEED portal, but I am too lazy to download and unzip the file myself, so I will just read the files on the fly. 
+
+:::{.aside}
+Vegetation Formations and Classes of NSW (version 3.03 - 200m Raster) - David A. Keith and Christopher C. Simpson. VIS_ID 3848. Updated in 2017 as version 3.1. Available from [SEED data portal](https://datasets.seed.nsw.gov.au/dataset/vegetation-classes-of-nsw-version-3-03-200m-raster-david-a-keith-and-christopher-c-simpc0917)
+:::
+
+### Value attribute table (VAT)
+
+First, I want to read the value attribute table of the raster file (the file with the extension `tif.vat.dbf`). I will need to know the url for the zipfile, and then the relative path to the file that I want to read within the zipfile. 
+
+With these lines of code I generate the remote path I need for accessing the data:
+
+```{python}
+url = "https://datasets.seed.nsw.gov.au/dataset/31986103-db62-4994-9702-054949281f56/resource/34a8cc72-5753-4993-8957-8d8af4fab008/download/ygeonetworkzipsvegetationnswmap3848.zip" 
+vat_file = "Vegetation_NSWmap3848/Data/GeoTIFF/NSWmap_v3_03_E_3848.tif.vat.dbf"
+remote_path = 'zip+{}!/{}'.format(url, vat_file)
+```
+
+I can read this file with `geopandas`:
+
+```{python}
+vat = gpd.read_file(remote_path)
+```
+
+And Now I can see the attribute table for the raster I want to use.
+```{python}
+vat.head()
+```
+
+We will mostly use the class and formation names in columns `ClassName` and `FormationN`.
+
+### Raster data
+
+Reading the GeoTiff file is very similar, I use the same url as before, but change the relative path to locate the file with `.tif` extension, then we open the remote path using `rasterio.open`:
+
+```{python}
+gtiff_file = "Vegetation_NSWmap3848/Data/GeoTIFF/NSWmap_v3_03_E_3848.tif"
+gtiff_path = 'zip+{}!/{}'.format(url, gtiff_file)
+dataset = rasterio.open(gtiff_path)
+```
+
+We can now explore this object to get its dimensions, bounds and coordinate reference system (CRS):
+
+```{python}
+print(dataset.width, dataset.height)
+{i: dtype for i, dtype in zip(dataset.indexes, dataset.dtypes)}
+dataset.bounds
+dataset.crs
+```
+
+The CRS is important, for we will need this information to create a window to crop the raster data. This EPSG code is know as the *GDA94 / NSW Lambert*. I explore this projection in <https://epsg.io/3308> and get the coordinates around Sturt National Park at the northwestern corner of New South Wales:
+
+```{python}
+x0=8800000
+y0=4900000
+x1=x0+60000
+y1=y0+40000
+```
+
+Now I can use these bounds to crop the first (and only) band of the raster layer using the `windows` function in combination with a `read` function.
+
+```{python}
+W = windows.from_bounds(
+  left=x0, 
+  bottom=y0 , 
+  right=x1, 
+  top=y1, 
+  transform=dataset.transform)
+
+band1 = dataset.read(1, window=W)
+```
+
+We can now close the dataset, we already have the data we need in memory.
+```{python}
+dataset.close()
+```
+
+## Summarising the data
+
+Now we want to summarise the information over the selected spatial window. 
+We can use the `unique` function from numpy to create a frequency table for the raster values present in this region of interest.
+
+```{python}
+unique_values, counts = np.unique(band1, return_counts=True)
+ss_vals = pd.DataFrame(index=unique_values, data={'NewCount':counts})
+
+```
+
+And now we can join this with the VAT object created before. Make sure to use the right column for the index of both data frames to get the information aligned properly.
+
+```{python}
+joined = vat.set_index('Value').join(ss_vals, how="right", validate='one_to_one')
+```
+
+We can now create a summary table of the formations and classes present in our region of interest with the number of cells in each category.
+
+```{python}
+joined.groupby(by=['FormationN','ClassName'])[['NewCount']].sum()
+```
+
+## Plotting the data
+
+We can plot this window of the map with a legend to look at the spatial configuration of these classes in the landscape.
+
+First we choose the colors for our classes
+
+```{python}
+clrs = plt.colormaps["tab20"](np.arange(len(unique_values)))
+cmap=colors.ListedColormap(clrs)
+```
+
+And we construct the legend combining the index number and the formation names:
+
+```{python}
+class_names_list = list()
+for a,b in zip(joined.index,joined.FormationN):
+  class_names_list.append("{} {}".format(a,b))
+```
+
+And now we combine a couple of functions from matplotlib and EarthPy to create a plot with a legend:
+
+```{python}
+f, ax = plt.subplots(figsize=(5,5))
+im = ax.imshow(band1, cmap = cmap, norm=None)
+ax.set(title="Formations")
+ep.draw_legend(im, titles = class_names_list)
+ax.set_axis_off()
+plt.show()
+```
+
+
+
+## Conclusion
+
+Here we use python, `rasterio` and `geopandas` to explore a categorical raster layer using its value attribute table. Thanks to NSW SEED portal for providing the data!
+
+Here the basic recipe:
+
+- Find the dataset url,
+- Load the VAT file
+- Load the raster layer and crop it to a region of interest
+- Read the data and summarise it with numpy and pandas functions
+- Plot the data with matplotlib
+- Done!
+
+We can now build on this in future posts. Cheers!
+
+

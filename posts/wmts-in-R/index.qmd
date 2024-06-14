@@ -5,6 +5,8 @@ author: "José R. Ferrer-Paris"
 date: "2024-05-26"
 categories: [WMTS, R code, leaflet, Australia, iNaturalist]
 from: markdown+emoji
+editor_options: 
+  chunk_output_type: console
 ---
 
 ## JR the (virtual) explorer!
@@ -231,16 +233,23 @@ nsw_historical <- paste0(
     "https://portal.spatial.nsw.gov.au/tileservices/Hosted/HistoricalImagery1947/MapServer/",
     "WMTS?",
     "Request=GetTile",
+    "&crs=EPSG:3857",
     "&Service=WMTS",
     "&Version=1.0.0",
-    "&Style=default",
-    "&tilematrixset=default028mm",
-    "&Format=image/jpgpng",
+    "&dpiMode=7",
+    "&band=0",
+    "&featureCount=10",
+    "&format=image/jpgpng",
     "&layer=HistoricalImagery1947",
+    "&style=default",
+    "&tileMatrixSet=default028mm",
+    "&tilePixelRatio=0",
     "&TileMatrix={z}",
     "&TileRow={y}",
-    "&TileCol={x}"
-  )
+    "&TileCol={x}")
+
+# image/jpgpng:https://portal.spatial.nsw.gov.au/tileservices/Hosted/HistoricalImagery1947/MapServer/WMTS/tile/1.0.0/HistoricalImagery1947/{Style}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}
+
 leaflet() |>
   setView(lng = 151.2365, lat = -33.916, zoom = 14) |>
   addTiles(urlTemplate = nsw_historical,
@@ -272,8 +281,12 @@ leaflet() |>
            attribution = attrib_string,
            group = 'NSW imagery'
            ) |>
+  addTiles(urlTemplate = nsw_historical,
+           attribution = attrib_string,
+           group = 'NSW historical'
+           ) |>
     addLayersControl(
-        baseGroups = c("NSW imagery", "NSW base map"))
+        baseGroups = c("NSW imagery", "NSW base map", "NSW historical"))
 ```
 
 ## Conclusion

@@ -2,6 +2,7 @@
 title: "Welcome To My World"
 author: "José R. Ferrer-Paris"
 date: "2024-05-17"
+date-updated: "2024-06-11"
 categories: [how2]
 engine: knitr
 ---
@@ -70,6 +71,46 @@ FLICKR_API_KEY=
 ```
 
 For local development, I defined these variables in the `_environment.local` file and ignore this file in version control by adding `/_*.local` in `.gitignore`. 
+
+## Engine
+
+Some code is running with RStudio / VScode and R , some code with Python and Jupyter.
+
+For python, we [created a virtual environment](https://quarto.org/docs/projects/virtual-environments.html#using-venv) in the project directory.
+
+```bash
+python3 -m venv .venv
+```
+
+Then we activate the environment
+
+```bash
+source .venv/bin/activate    
+```
+
+Then we update pip, install other packages with:
+
+```{.sh}
+pip install --upgrade pip
+pip install jupyterlab
+pip install numpy matplotlib spyder owslib 
+pip install geopandas rasterio rasterstats affine osmnx
+pip install earthpy
+# pip install gdal 
+```
+
+To make this environment reproducible, we create a requirements.txt using pip
+
+```bash 
+python3 -m pip freeze > requirements.txt
+``` 
+
+Then we can reproduce this environment on another machine by creating an empty environment, activating it, and then:
+
+```bash 
+python3 -m pip install -r requirements.txt
+``` 
+
 
 ## Photos
 
