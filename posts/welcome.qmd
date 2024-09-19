@@ -96,7 +96,9 @@ pip install jupyterlab
 pip install numpy matplotlib spyder owslib 
 pip install geopandas rasterio rasterstats affine osmnx
 pip install earthpy
-# pip install gdal 
+pip install h3pandas
+pip install pyinaturalist
+pip install pygbif
 ```
 
 To make this environment reproducible, we create a requirements.txt using pip
@@ -111,6 +113,11 @@ Then we can reproduce this environment on another machine by creating an empty e
 python3 -m pip install -r requirements.txt
 ``` 
 
+In MacOSX we might need to do this to install the certificates:
+
+```bash
+open /Applications/Python\ 3.12/Install\ Certificates.command
+```
 
 ## Photos
 

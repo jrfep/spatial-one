@@ -6,20 +6,25 @@ comments: false
 
 You can explore more of my content in several places:
 
-- At my [personal site](https://jrfep.github.io) (En español)
-- At my [UNSW research profile](https://research.unsw.edu.au/people/dr-jose-rafael-ferrer-paris)
+- Look at [these slides](https://jrfep.github.io) and visit my website in [English](https://jrfep.github.io/eng) and [Spanish](https://jrfep.github.io/esp)
+- Visit my [UNSW research profile](https://research.unsw.edu.au/people/dr-jose-rafael-ferrer-paris)
 
 # My projects
 
-## The IUCN Global Ecosystem Typology
+#### The IUCN Global Ecosystem Typology
 
 Explore the [global-ecosystems](https://global-ecosystems.org) webapp
 
-## The IUCN Red List of Ecosystems
+#### Fire ecology traits for plants
 
-I have contributed multiple assessments for:
-- [Tropical glaciers](https://red-list-ecosystem.github.io/T6.1-SA-01-VE-01-Cordillera-Merida/)
+<http://fireecologyplants.net> is a database for fire research and management. Explore all the source code and resources at [OSF](https://osf.io/hu96w).
 
-## NeoMapas
+#### The IUCN Red List of Ecosystems
+
+Look at my recent contributions:
+
+- [Tropical glaciers in Venezuela](https://red-list-ecosystem.github.io/T6.1-SA-01-VE-01-Cordillera-Merida/)
+
+#### NeoMapas
 
 NeoMapas website at <https://neomapas.github.io>

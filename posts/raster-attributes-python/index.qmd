@@ -3,7 +3,7 @@ subtitle: "Exploring the Vegetation of New South Wales"
 title: "Using rasterio with a categorical map"
 author: "José R. Ferrer-Paris"
 date: "2024-05-29"
-categories: [python, rasterio, vegetation, Australia]
+categories: [Python, rasterio, vegetation, Australia]
 from: markdown+emoji
 editor_options: 
   chunk_output_type: console

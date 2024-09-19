@@ -1,0 +1,12 @@
+{
+  "hash": "159f461b4993745291ac9a949847a23f",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\ntitle: \"Hexagons are the bestagons\"\nauthor: \"José R. Ferrer-Paris\"\ndate: \"2024-07-09\"\ncategories: [Python, h3, pandas]\ndraft: true\nfrom: markdown+emoji\neditor_options: \n  chunk_output_type: console\nengine: jupyter\n---\n\nBy now, everybody should have heard that ***hexagons are the bestagons***, but in case you missed it:\n\n<iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/thOifuHs6eY?si=8idHqykyApHlk8bW\" title=\"YouTube video player\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe>\n\n## Import the modules\n\nFirst I use the import statements to load the modules I will use in this session. I will be using read functions from [GeoPandas](https://geopandas.org/en/stable/docs/user_guide.html) and [Rasterio](https://rasterio.readthedocs.io/en/stable/index.html) and a couple of helper funcitons from [EarthPy](https://earthpy.readthedocs.io/en/latest/get-started.html) as well as the usual suspects [matplotlib](https://matplotlib.org/stable/), numpy and pandas.\n\n::: {#142a6e1e .cell execution_count=1}\n``` {.python .cell-code}\nimport pandas as pd\nimport geopandas as gpd\nimport h3pandas\nimport matplotlib.pyplot as plt\n```\n:::\n\n\nDo \n\n- https://towardsdatascience.com/uber-h3-for-data-analysis-with-python-1e54acdcc908\n- https://jens-wirelesscar.medium.com/lhexagone-in-hexagons-uber-h3-map-1566bc412172\n- https://h3geo.org/docs/core-library/restable\n- https://h3-pandas.readthedocs.io/en/latest/notebook/01-unified-data-layers.html\n- https://h3geo.org/docs/api/hierarchy/\n- https://h3-pandas.readthedocs.io/en/latest/notebook/01-unified-data-layers.html\n- https://docs.pygeoapi.io/en/latest/data-publishing/ogcapi-processes.html\n- https://github.com/DahnJ/H3-Pandas/blob/master/notebook/01-unified-data-layers.ipynb\n- https://github.com/DahnJ/H3-Pandas\n- https://github.com/uber/h3-py\n- https://h3geo.org\n- https://towardsdatascience.com/uber-h3-for-data-analysis-with-python-1e54acdcc908\n\n",
+    "supporting": [
+      "index_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

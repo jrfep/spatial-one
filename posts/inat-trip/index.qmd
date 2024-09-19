@@ -1,0 +1,176 @@
+---
+title: "Planning a trip with iNaturalist"
+author: "José R. Ferrer-Paris"
+date: "2024-09-19"
+categories: [Python, GBIF, iNaturalist, Colombia]
+from: markdown
+editor_options: 
+  chunk_output_type: console
+engine: jupyter
+image: "https://live.staticflickr.com/2743/4496733762_747cf50b46_w_d.jpg"
+image-alt: "¡Chócala! en el Museo de Botero"
+---
+
+I am planning a trip to Colombia, heading there with my cameras and [iNaturalist app](https://www.inaturalist.org/posts/8889-inaturalist-app) to add new observations of plants, birds and butterflies to my personal collection.
+
+In preparation for my trip I want to review what are the popular destinations for iNaturalist users and what species to expect in those. I will explore some options with `Python` to download and visualise a selection of biodiversity records.
+
+## Querying iNaturalist from Python
+
+The first option is to use the `pyinaturalist` library in python. But the iNaturalist API complained when I was trying to download large amounts of data: all records from a country for a single month.
+
+Next option is to use the **iNaturalist** export function:
+
+1. Go to <https://www.inaturalist.org/observations/export>
+2. Query observations from Colombia for October 2023: `quality_grade=any&identifications=any&place_id=7196&month=10&year=2023`
+3. Request data sent to email...
+
+But this option is not very useful for a reproducible workflow.
+
+Now, that page suggests using GBIF for big downloads, so maybe that is the best way...
+
+## Import the modules
+
+First I use the import statements to load the modules I will use in this session. I will be using the `occurrences` functions from [PyGBIF](https://pygbif.readthedocs.io/en/latest/) for query and download, and tryout exploratory data visualisation with [Altair](https://altair-viz.github.io/altair-tutorial/README.html). Also using some functions from [GeoPandas](https://geopandas.org/en/stable/docs/user_guide.html) and pandas for convenience in reading data as a data frame.
+
+```{python}
+from pygbif import occurrences as occ
+import altair as alt
+import pandas as pd
+import geopandas as gpd
+```
+
+## What and where
+
+I want to explore iNaturalist records from Colombia for the month of october 2023.
+
+After some trial and error and reading some similar questions online, I adjusted the search parameters for my query using the search options `country`, `datasetKey`, `year` and `month`:
+
+```{python}
+search_params = {
+    'country': 'CO', # Colombia
+    'datasetKey': '50c9509d-22c7-4a22-a47d-8c48425ef4a7', # iNaturalist dataset
+    'limit': 300, # occurrences per page
+    'year': 2022,
+    'month': 10 # October
+}
+```
+
+And use the occurrences `search` function from `pygbif`:
+
+```{python}
+gbif_records = occ.search(**search_params)
+```
+
+The query finds thousands of occurrences:
+
+```{python}
+print(gbif_records['count'])
+```
+
+But only a limited number is downloaded in each query (the search function uses pagination, we will solve that later).
+
+```{python}
+gbif_df = pd.DataFrame(gbif_records['results'])
+gbif_df.shape
+```
+
+We can check the most frequent orders represented in this first query:
+
+```{python}
+gbif_df[['order','orderKey']].value_counts().head()
+```
+
+## Downloading large selections of records
+
+In order to retrieve all occurrences we need a function that applies the same query multiple times using an offset until all records are downloaded. It was really easy to find such a function for python:
+
+```{python}
+def get_all_occurrences(params):
+    all_occurrences = []
+    offset = 0
+    while True:
+        params['offset'] = offset
+        occurrences = occ.search(**params)
+        results = occurrences['results']
+        if not results:
+            break
+        all_occurrences.extend(results)
+        offset += len(results)
+        print(f"{offset} occurrences downloaded...")
+    all_occurrences = pd.DataFrame(all_occurrences)
+    return all_occurrences
+```
+
+Now I will try this here to download all records from one order (Lepidoptera) using the `orderKey` parameter (see value above in the table of most frequent orders). This will retrieve records for all butterflies and months for the same country, year and month selectred above.
+
+```{python}
+search_params['orderKey'] = 797
+lepidoptera_occurrences = get_all_occurrences(search_params)
+```
+
+We can do the same for Passeriformes (aves), Asterales (plants), etc. Just need to adjust the `orderKey` parameter accordingly.
+
+Among the lepidoptera we will focus on the  families of butterflies. Remember we have a pandas dataframe, so we can use the `loc` function to subset the dataframe:
+
+```{python}
+ss = lepidoptera_occurrences.family.isin(['Pieridae','Nymphalidae', 'Lycaenidae','Papilionidae','Riodinidae', 'Hedylidae', 'Hesperiidae'])
+
+butterfly_occurrences = lepidoptera_occurrences.loc[ss]
+```
+
+
+## Visualisation of points in a map
+
+I found a useful map of the administrative divisions of Colombia in *simplemaps*, we can download and read the json file with `geopandas`:
+
+```{python}
+url = 'https://simplemaps.com/static/svg/country/co/admin1/co.json'
+colombia = gpd.read_file(url) 
+```
+
+For visualisation I found [Altair was a nice alternative](https://altair-viz.github.io/user_guide/marks/geoshape.html).
+
+First we will define the background using the `mark_geoshape` function with a geopandas dataframe:
+
+```{python}
+
+background = alt.Chart(colombia).mark_geoshape(
+    fill='lightgray',
+    stroke='white'
+).project('mercator').properties(
+    width=600,
+    height=700
+)
+```
+
+For the points we can use the previous dataframe with the columns for the coordinates and declaring another variable for the colours: 
+
+```{python}
+points = alt.Chart(butterfly_occurrences).mark_circle().encode(
+    longitude="decimalLongitude:Q", latitude="decimalLatitude:Q", color='family:N'
+)
+```
+
+Putting this together is as easy as:
+
+```{python}
+background + points
+```
+
+
+## Conclusion
+
+Here we use python, `pygbif` and `altair` to explore biodiversity records in one country and a selected time frame. Thanks to GBIF and iNaturalist portals for providing wonderful tools to access their data!
+
+Here the basic recipe:
+
+- Find the dataset key for iNaturalist,
+- Query the GBIF database,
+- Explore the data and select the orderKey for each order of interest
+- Repeat the query for each order and iterate to download all records
+- Plot the data with Altair
+- Done!
+
+That's it for now. Now, if you excuse me, I need to go back to planning my trip!
+
