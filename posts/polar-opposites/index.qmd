@@ -1,0 +1,145 @@
+---
+title: "Polar opposites"
+author: "José R. Ferrer-Paris"
+date: "2024-08-19"
+categories: [Python, Altair, Antarctica]
+from: markdown
+editor_options: 
+  chunk_output_type: console
+engine: jupyter
+image: "AI-image.jpg"
+image-alt: "Generated with AI ∙ 20 September 2024 at 7:28 PM"
+---
+
+So, I was looking at this map of the [MT2.2 Large seabird and pinniped colonies](https://global-ecosystems.org/explore/groups/MT2.2) ecosystem functional group, and was completely dissatisfied. 
+
+I mean, I am sure [Gerardus Mercator](https://en.wikipedia.org/wiki/Gerardus_Mercator) was a great guy full of good intentions, but the [polar distorsions](https://en.wikipedia.org/wiki/Mercator_projection#Distortion_of_sizes) are just ridiculous.
+
+Lucky for us, there are so many projections and tools to visualise data from around the globe. 
+
+I will show you the problem and a nice solution using Python and just three ingredients: the packages `altair`, `vega datasets` and `geopandas`.
+
+```{python}
+import altair as alt
+from vega_datasets import data
+import geopandas as gpd
+```
+
+## The problem
+
+First we load a simple map of the world:
+
+```{python}
+countries = alt.topo_feature(data.world_110m.url, 'countries')
+```
+
+Now we will use the functions `Chart`,  `mark_geoshape` and `project` to visualise this geospatial data using Mercator projection:
+
+```{python}
+alt.Chart(countries).mark_geoshape(
+    fill='lightgray',
+    stroke='white'
+).project(
+    "mercator"
+).properties(
+    width=500,
+    height=300
+)
+```
+
+Yes, I know that all map projections create a distorted view of shapes or sizes of the true layout of the Earth's surface. The main problem with Mercator projection is that exaggerates areas far from the equator; and that's bad for [circumpolar](https://en.wikipedia.org/wiki/Circumpolar_distribution) data. 
+
+## The solution
+
+Let's just find a nice projection that helps us focus our poles of attention.
+
+One nice way to visualise data on the ecosphere is to look at the Earth as if it were... well a sphere!
+
+Let's apply the [orthographic map projection](https://en.wikipedia.org/wiki/Orthographic_map_projection) with specific rotation parameters and see how the results look like:
+
+```{python}
+northpole = alt.Chart(countries).mark_geoshape(
+    fill='gray',
+    stroke='white'
+).project(
+    'orthographic',
+    rotate=[75, -85, 15]
+)
+
+northpole
+```
+
+And looks much more round-y.
+
+## Add data on top of that
+
+Now the interesting part is to add data to our globe view.
+
+Let's download this dataset in geojson format from:
+
+> Ferrer-Paris, J. R., Gorta, S. B. Z., & Keith, D. A. (2023). Indicative distribution map for Ecosystem Functional Group MT2.2 Large seabird and pinniped colonies (MT2.2.IM.orig v1.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.10042530
+
+:::{.aside}
+Thanks [Simon](https://www.unsw.edu.au/science/our-schools/bees/about-us/our-people/postgraduate-research-students/Simon-Gorta-grs-profile)!
+:::
+
+We use a function from `geopandas` to read this file:
+
+```{python}
+url_geojson = 'https://zenodo.org/records/10042530/files/MT2.2.IM.orig_v1.0.json?download=1'
+MT2_2 = gpd.read_file(url_geojson) 
+
+MT2_2
+```
+
+Now we can apply the same projection parameters to this dataset:
+
+```{python}
+ecomap_northpole = alt.Chart(MT2_2).mark_geoshape(
+).encode(
+    color='occurrence:N'
+).project(
+    'orthographic',
+    rotate=[75, -85, 15]
+)
+ecomap_northpole
+```
+
+Upps! I forgot to combine both layers, silly me!
+
+```{python}
+northpole + ecomap_northpole
+```
+
+## What about the other end?
+
+You mean the South Pole, right? Well, that is easy, we just need to rotate in the opposite direction. 
+
+Let's do that for the country layer:
+
+```{python}
+southpole = alt.Chart(countries).mark_geoshape(
+    fill='gray',
+    stroke='white'
+).project(
+    'orthographic',
+    rotate=[75, 85, 15]
+)
+```
+
+And the ecosystem layer
+
+```{python}
+ecomap_southpole = alt.Chart(MT2_2).mark_geoshape(
+).encode(
+    color='occurrence:N'
+).project(
+    'orthographic',
+    rotate=[75, 85, 15]
+)
+```
+
+And this is it!
+```{python}
+southpole + ecomap_southpole
+```

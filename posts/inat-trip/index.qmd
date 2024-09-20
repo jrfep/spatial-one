@@ -2,7 +2,7 @@
 title: "Planning a trip with iNaturalist"
 author: "José R. Ferrer-Paris"
 date: "2024-09-19"
-categories: [Python, GBIF, iNaturalist, Colombia]
+categories: [Python, GBIF, iNaturalist, Altair, Colombia]
 from: markdown
 editor_options: 
   chunk_output_type: console
