@@ -99,7 +99,18 @@ pip install earthpy
 pip install h3pandas
 pip install pyinaturalist
 pip install pygbif
+pip install geopandas fiona --upgrade
+pip install folium 
+pip install basemap plotly
+
 ```
+
+Plotly might need a reinstall, until this is solved: <https://github.com/quarto-dev/quarto-cli/discussions/5264>
+
+```{.sh}
+pip install --force-reinstall plotly=="5.24"
+```
+
 
 To make this environment reproducible, we create a requirements.txt using pip
 

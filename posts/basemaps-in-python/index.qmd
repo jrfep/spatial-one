@@ -1,0 +1,61 @@
+---
+title: "Basemaps for World Heritage sites"
+author: "José R. Ferrer-Paris"
+date: "2025-02-24"
+categories: [Python, basemap]
+draft: true
+---
+
+```{python}
+#| eval: false
+long=float(node.find('longitude').text)
+lat=float(node.find('latitude').text)
+name=node.find('site').text
+plt.figure(figsize=(8, 8))
+m = Basemap(projection='ortho', resolution=None, lat_0=lat, lon_0=long)
+m.bluemarble(scale=0.5);
+x, y = m(long, lat)
+plt.plot(x, y, 'ok', markersize=5)
+plt.text(x, y, ' ' + name, fontsize=12);
+fig = plt.figure(figsize=(5, 5))
+m = Basemap(projection='lcc', resolution=None,
+            width=7E6, height=7E6, 
+            lat_0=lat, lon_0=long,)
+m.etopo(scale=0.5, alpha=0.5)
+
+# Map (long, lat) to (x, y) for plotting
+x, y = m(long, lat)
+plt.plot(x, y, 'ok', markersize=5)
+plt.text(x, y, ' ' + name, fontsize=7);
+
+fig = plt.figure(figsize=(8, 6), edgecolor='w')
+m = Basemap(projection='cyl', resolution=None,
+            llcrnrlat=-90, urcrnrlat=90,
+            llcrnrlon=-180, urcrnrlon=180, )
+draw_map(m)
+x, y = m(long, lat)
+plt.plot(x, y, 'ok', markersize=5)
+plt.text(x, y, ' ' + name, fontsize=7);
+
+
+# make up some data for scatter plot
+lats = np.random.randint(-75, 75, size=20)
+lons = np.random.randint(-179, 179, size=20)
+
+fig = plt.gcf()
+fig.set_size_inches(8, 6.5)
+
+m = Basemap(projection='merc', \
+            llcrnrlat=-80, urcrnrlat=80, \
+            llcrnrlon=-180, urcrnrlon=180, \
+            lat_ts=20, \
+            resolution='c')
+
+m.bluemarble(scale=0.2)   # full scale will be overkill
+m.drawcoastlines(color='white', linewidth=0.2)  # add coastlines
+
+x, y = m(lons, lats)  # transform coordinates
+plt.scatter(x, y, 10, marker='o', color='Red') 
+
+plt.show()
+```

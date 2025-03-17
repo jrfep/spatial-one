@@ -1,0 +1,360 @@
+---
+title: "Monitoring an iNaturalist project"
+author: "José R. Ferrer-Paris"
+date: "2025-02-18"
+categories: [Python, iNaturalist, Altair, Australia, folium, leaflet, Gayini]
+from: markdown
+editor_options: 
+  chunk_output_type: console
+engine: jupyter
+---
+
+I need to bring together some of the tools and tricks I have written about in previous posts in order to monitor a project in [iNaturalist](https://www.inaturalist.org/home).
+
+I will show here how to download information from a `region` in iNaturalist, query the observations in that region and visualise the data in three alternative ways: taxonomically, spatially, and temporally.
+
+## Prepare for the action!
+
+I am doing this little task with python. First I use the import statements to load the modules I will use in this session. I will be using the `get_observations` function and the `ICONIC_TAXA` constants from [PyiNaturalist](https://pyinaturalist.readthedocs.io/en/stable/) for query and download of the data, I will visualise data with [Altair](https://altair-viz.github.io/altair-tutorial/README.html) and [Folium](https://python-visualization.github.io/folium/latest/index.html). Also using some functions from [GeoPandas](https://geopandas.org/en/stable/docs/user_guide.html), pandas and datetime for convenience in reading data as a data frame.
+
+```{python}
+from pyinaturalist import get_observations, ICONIC_TAXA
+import altair as alt
+import pandas as pd
+import geopandas as gpd
+import folium
+from datetime import datetime
+```
+
+## What is the project about?
+
+According to the [Project page](https://www.inaturalist.org/projects/gayini-wetlands): 
+
+> The Nari Nari Tribal Council manages and is actively restoring 80,000 ha of the extensive Gayini wetlands on the Murrumbidgee River. With their consortium partners, they are managing environmental flows, feral animals, cultural burning and grazing of livestock. The area is a key breeding area for waterbird rookeries, including the three ibis species, spoonbills, cormorants, herons and Australian pelicans. It also has extensive areas of lignum, river red gum and blackbox as well as terrestrial ecosystems. Nari Nari are supported by three other consortium partners, The Nature Conservancy, Murray Darling Wetlands Working Group and UNSW’s Centre for Ecosystem Science.
+
+## Querying iNaturalist from Python
+
+The first option is to use the `pyinaturalist` library in python. Very useful and download great amounts of information. There are many handy functions in that library, but I am only going to use one, and extract all the information I need from the downloaded json object.
+
+I need to define a `place_id` that matches the area of interest, in this case the Gayini wetlands in iNaturalist are identified as this:
+
+```{python}
+PLACE_ID = 209778
+PLACE_NAME = 'Gayini wetlands'
+```
+
+I will use this `place_id` in the `get_observations` function to query the iNaturalist API:
+
+```{python}
+
+observations = get_observations(place_id=PLACE_ID, 
+                               per_page=200)
+```
+
+This object has some handy summaries and lots of results:
+```{python}
+observations.keys()
+```
+
+Let's check the total first:
+
+```{python}
+observations['total_results']
+```
+
+Not too many observations, as I said, this project is just getting started. Gayini is a great place to observe wildlife, but is a remote place. Hopefully this code will be re-usable in future years to make comparable visualisation after more people have collected information on animals and plants.
+
+## Taxonomic visualisation
+
+So, first things first, let's see how many species and which groups do we have here.
+
+iNaturlist group species into `iconic taxa`. Since we don't need to get into the details of taxonomic classifications for this project, this will do for this excercise. 
+
+Here I prepared a bit of code that goes through the list of iNat's observations (downloaded as a json object or, in this case, a python dictionary), and filters the *research quality grade* observations to extract records of species names, iconic taxon, date of the observation and the preferred common name, if present.
+
+```{python}
+records = list()
+for obs in observations['results']:
+    if obs['quality_grade'] == 'research':
+        if obs['taxon'] is not None:
+            record = {
+                'rank': obs['taxon']['rank'],
+                'species_name': obs['taxon']['name'],
+                'iconic_taxon': obs['taxon']['iconic_taxon_name'],
+                'observed_on': datetime.date(obs['observed_on']),
+            }
+            if 'preferred_common_name' in  obs['taxon'].keys():
+                record['common_name']= obs['taxon']['preferred_common_name']
+            records.append(record)
+```
+
+How does this look now? Let's use the pandas data frame function to have a look:
+
+```{python}
+df = pd.DataFrame(records)
+df.head()
+```
+
+There are not to many observation in this data frame, we started with a small-ish set of observations, and we filtered out those regarded as _casual_ observations, so we have few species. 
+
+For example, we can group observations by species and count the total number of records.
+
+```{python}
+colnames=['iconic_taxon','species_name','common_name','rank',]
+df.groupby(colnames)['species_name'].agg([ 'count'])
+```
+
+Now we will summarise this by the iconic taxa:
+
+```{python}
+iconic_df = df.groupby('iconic_taxon')['species_name'].agg([ 'count', 'nunique']).reset_index()
+```
+
+We can now use these lines of code to add an url with icons for each iconic taxon:
+
+```{python}
+TAXON_IMAGE_URL = 'https://raw.githubusercontent.com/inaturalist/inaturalist/main/app/assets/images/iconic_taxa/{taxon}-75px.png'
+
+iconic_df['img']=iconic_df.iconic_taxon.apply(lambda x: TAXON_IMAGE_URL.format(taxon=x.lower()))
+```
+
+And we will prepare some layers of visualisation with Altair, first a barchart of number of observations:
+
+```{python}
+bar1 = alt.Chart(
+    iconic_df
+    ).mark_bar(
+        color='grey', opacity=0.15
+        ).encode(
+            x=alt.X('iconic_taxon:N', sort='-y'), 
+            y='count:Q'
+            )
+bar1
+```
+Then a barchart of number of species:
+```{python}
+bar2 = alt.Chart(
+    iconic_df
+    ).mark_bar(
+        color='blue', opacity=0.15
+        ).encode(
+            x=alt.X('iconic_taxon:N', sort='-y'), 
+            y='nunique:Q'
+            )
+bar2
+```
+
+And we can use the icons as the icing on the cake:
+
+```{python}
+img = alt.Chart(
+    iconic_df,
+    title=f'Research grade observations in {PLACE_NAME} by iconic taxon',
+    width=750,
+    height=500,
+).mark_image(
+    baseline='top'
+    ).encode(
+        x=alt.X('iconic_taxon:N', sort='-y', title='Iconic taxon'), 
+        y=alt.Y('count:Q', title='Number of species/observations'), url='img')
+bar1 + bar2 + img
+```
+
+## Temporal visualisation
+
+For the temporal component, we are only going to look at two very simple barcharts.
+
+First we will extract the year and month from the `observed_on` date column in the data frame:
+
+```{python}
+df['Year']=df.observed_on.apply(lambda x: x.year)
+df['Month']=df.observed_on.apply(lambda x: x.month)
+```
+
+We can now group the observations by year and count the number of observations and species per year.
+
+```{python}
+observations_by_year = df.groupby('Year')['species_name'].agg([ 'count', 'nunique']).reset_index()
+```
+
+With this summary of the grouped data, we build a barchart similar as the examples above:
+
+```{python}
+alt.Chart(
+    observations_by_year
+).mark_bar().encode(
+    x=alt.X('Year:N'), 
+    y=alt.Y('count:Q', title='Number of observations'))
+```
+
+So we can see that almost all observations come from the last five years.
+
+Now we can do the same for the month of the year, taking all years together:
+
+
+```{python}
+observations_by_month = df.groupby('Month')['species_name'].agg([ 'count', 'nunique']).reset_index()
+alt.Chart(observations_by_month).mark_bar().encode(x=alt.X('Month:N'), y='count:Q')
+```
+
+We then see how most observations are from the summer months, and none from winter months. 
+
+## Spatial visualisation
+
+Now the nice part that we always like to see in this blog, the MAP!
+
+For this, we have to do quite a lot of preparation:
+
+- create a map canvas for leaflet
+- get a base layer for the map
+- get a polygon of the area of interest
+- add the inat observations
+- and enjoy the map!
+
+### Folium is Python's leaflet
+
+Like many artist, our work starts with an empty canvas. In Python we use `folium` to create a leaflet widget in our website. We just need an initial location and zoom level.
+
+```{python}
+m = folium.Map(location=[-34.65, 143.583333],tiles = None, zoom_start=9)
+```
+
+We are not going to show this yet. Let's keep adding layers to this.
+
+### My dear base layer
+
+As mentioned in a previous post the [NSW Spatial Services](https://www.spatial.nsw.gov.au). Check available services here: <https://maps.six.nsw.gov.au/arcgis/rest/services/public>.
+
+We will use here the NSW Base Map:
+```{python}
+NSW_basemap_url = "http://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Base_Map/MapServer/WMTS"
+
+nsw_basemap = NSW_basemap_url + "?Service=WMTS" + "&Request=GetTile" + "&Version=1.0.0" + "&Style=default" + "&tilematrixset=default028mm" + "&Format=image/png" +  "&layer=public_NSW_Base_Map" + "&TileMatrix={z}" + "&TileRow={y}" + "&TileCol={x}"
+```
+
+Let's not forget the right attribution to the data:
+```{python}
+attrib_string = " © State of New South Wales, Department of Customer Service, Spatial Services"
+```
+
+And we can add this base layer to our map with this:
+```{python}
+folium.TileLayer(tiles=nsw_basemap, attr=attrib_string, name='NSW base map').add_to(m)
+```
+
+I know, you probably want to have a peak at how this is looking so far, but let's wait a bit more, we still need to add the boundary polygon and the observations.
+
+### Get the polygon!
+
+Luckily, inaturalist provide an easy to retrieve spatial information using places that have been contributed by the community. The only trick is knowing the `place_id` beforehand. 
+
+In my case, I know this information already, and will use to find a path a KML file with the boundaries of the region of interest:
+
+```{python}
+path = f'https://www.inaturalist.org/places/geometry/{PLACE_ID}.kml'
+gayini_polygon = gpd.read_file(path)
+```
+
+And voilà, we have our polygon. How did I know how to do this? The [iNatForum](https://forum.inaturalist.org/t/how-to-get-kml-boundaries-for-inat-places-wiki/3750) is a great place to get answers!
+
+Now we will transform this polygon into a geojson object, and use folium's `GeoJson` method to prepare the layer for our map, complete with a pop up message:
+
+```{python}
+gayini_geojson = gpd.GeoSeries(gayini_polygon["geometry"]).to_json()
+geo_j = folium.GeoJson(data=gayini_geojson, style_function=lambda x: {"fillColor": "orange"})
+folium.Popup('Gayini wetlands').add_to(geo_j)
+
+```
+
+Next, we a feature group for our map:
+
+```{python}
+pol = folium.FeatureGroup(name="Boundaries", control=True).add_to(m)
+```
+
+And add the GeoJson layer to it:
+
+```{python}
+geo_j.add_to(pol)
+```
+
+We are almost there, one more step.
+
+### A marker for each iNat obs
+
+Now we can add the iNat observations. First let's prepare another feature group for our map.
+
+```{python}
+fg = folium.FeatureGroup(name="iNaturalist observations", control=True).add_to(m)
+```
+
+We will also need a template for the pop-up of each marker, for example, something like this:
+
+```{python}
+popup_text = """<img src='{url}'>
+<caption><i>{species}</i> observed on {observed_on} / {attribution}</caption> {desc}
+   """
+```
+
+Next we use these lines of code to run through all the observations queried from iNaturalist in json format, filer the *research quality grade* observations, and prepare our folium markers (complete with their pop-up), one for each valid observation. 
+
+```{python}
+for obs in observations['results']:
+    if obs['quality_grade'] == 'research':
+        if obs['description'] is None:
+            desc = ""
+        else:
+            desc = obs['description']
+        pincolor = 'green'
+    else:
+        desc = "Observation is not research quality grade."
+        pincolor = 'gray'
+    fg.add_child(
+        folium.Marker(
+            location=obs['location'],
+            popup=popup_text.format(
+               species=obs['species_guess'],
+                observed_on=obs['observed_on'],
+                desc=desc,
+               url = obs['observation_photos'][0]['photo']['url'],
+               attribution = obs['observation_photos'][0]['photo']['attribution']),
+            icon=folium.Icon(color=pincolor),
+        )
+      )
+```
+
+
+### Enjoy the map
+
+Now we are almost ready. Let's just fix the bounds of the map to snuggly fit all our markers:
+
+```{python}
+m.fit_bounds(m.get_bounds())
+```
+
+Now add the layer controls to show/hide the layers of information:
+```{python}
+
+folium.LayerControl().add_to(m)
+```
+
+And enjoy!
+```{python}
+m
+```
+
+## Conclusion
+
+Here we use python, `pyinaturalist` and `altair` to explore biodiversity records in one region that is part of iNat community project. Here we are also using freely available data for the NSW basemaps. Thanks to iNaturalist and NSW Spatial Services for providing wonderful tools to access their data!
+
+Here the basic recipe:
+
+- Find the place id for the iNaturalist region of interest,
+- Query the iNaturalist API,
+- Loop through the data to filter and select the variables of interest
+- Explore the taxonomic and temporal dimensions of the data with Altair
+- Mix polygons, basemaps and iNat observations location data into a dynamic map
+- Done!
+
+That's it for now. Will come back to this in a few years to see the progress of this project.
+

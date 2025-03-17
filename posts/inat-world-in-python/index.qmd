@@ -1,0 +1,295 @@
+---
+title: "Around the world with iNaturalist"
+author: "José R. Ferrer-Paris"
+date: "2025-03-17"
+categories: [Python, iNaturalist, Plotly, global, basemap]
+from: markdown
+editor_options: 
+  chunk_output_type: console
+engine: jupyter
+image: "https://live.staticflickr.com/3057/2427335613_2ffca8383f_w_d.jpg"
+image-alt: "NeoMapas"
+---
+
+# Mapping Biodiversity: Visualizing iNaturalist Observations with Python
+
+Today, we’ll embark on an adventure from the field to the digital realm. Let’s explore how to extract, map, and analyze global iNaturalist observations using Python.
+
+## Overview
+
+In this blog post, we'll walk through the following steps to map and analyze iNaturalist observations using Python:
+
+1. **Download iNaturalist observations** from around the world.
+2. **Display these observations on a world map**.
+3. **Intersect observations** with country and national boundaries.
+4. **Generate interactive graphs** to explore observations at different levels.
+
+## Tools and Libraries
+
+I will be using a Python environment with a selection of my favourite libraries, as explained [here](/posts/welcome.qmd#engine). 
+
+We will be using the following libraries in this blog post:
+
+
+```{python}
+from pyinaturalist import get_observations
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+from shapely.geometry import Point
+from mpl_toolkits.basemap import Basemap
+import matplotlib.pyplot as plt
+import plotly.express as px
+import zipfile, requests, io
+```
+
+:::{.aside}
+
+- [pyinaturalist](https://pyinaturalist.readthedocs.io/): A Python client for the iNaturalist API, allowing access to observation data.
+
+- [Matplotlib basemap toolkit](https://matplotlib.org/basemap/stable/users/index.html): A library for plotting 2D data on maps in Python.
+
+- [geopandas](https://geopandas.org/): An extension of pandas that supports spatial data operations, making it easier to work with geographic datasets.
+
+- [plotly](https://plotly.com/python/): A graphing library that makes interactive plots and dashboards with ease.
+
+:::
+
+## Step-by-Step Guide
+
+### Step 1: Downloading iNaturalist Observations
+
+Let's begin by fetching iNaturalist observations with `pyinaturalist`. We will need a selection of global observations so we select the user `neomapas`^[My alter ego in the iNat world], and see where in the world they have been.
+
+```{python}
+#| eval: true
+username = 'neomapas'
+observations = get_observations(user_id=username, per_page=0)
+n_obs = observations['total_results']
+
+# First we need to figure out how many observations to expect:
+print("User _{}_ has {} observations in iNaturalist".format(username,n_obs))
+```
+
+The maximum number of observations we can download in each query 200, so we need to use pagination to get all results. For each query we will extract a minimum selection of fields that we will use for summarising the data (coordinates, place and species guess), but there are many other fields that could be important to include for more in depth explorations. 
+
+```{python}
+#| eval: true
+records=list()
+j=1
+while len(records) < n_obs:
+    print("Requesting observations from user _{}_: page {}, total of {} observations downloaded".format(username,j,min(j*200,n_obs)))
+    observations = get_observations(user_id=username,per_page=200,page=j)
+    for obs in observations['results']:
+        record = {
+            'longitude': obs['location'][1],
+            'latitude': obs['location'][0],
+            'location': obs['place_guess'],
+            'species guess': obs['species_guess'],
+            #'quality': obs['quality_grade'],
+            #'description': obs['description'],
+            #'observed on': obs['observed_on'],
+        }
+        if len(obs['observation_photos'])>0:
+            record['url'] = obs['observation_photos'][0]['photo']['url']
+            record['attribution'] = obs['observation_photos'][0]['photo']['attribution']
+        records.append(record)
+    j=j+1
+    
+```
+
+Now we need to bundle all these records into a data frame with geospatial information using `geopandas`. We define a data frame with `pandas` and transform the numeric variables `latitude` and `longitude` into a geometry with a explicit Coordinate Reference System (CRS):
+
+```{python}
+#| eval: true
+gs = [Point(float(obs['longitude']), float(obs['latitude']))  for obs in records]
+inat_obs_world=gpd.GeoDataFrame(records, geometry=gs, crs="EPSG:4326")
+```
+
+### Step 2: Creating a Map of Observations
+
+We will visualize these observation on top of a simple basemap using the `Matplotlib basemap toolkit`.
+
+We can use a nice global projection like [Kavrayskiy VII](https://en.wikipedia.org/wiki/Kavrayskiy_VII_projection), then add the points from the coordinates in our dataframe:
+
+
+```{python}
+#| eval: true
+
+m = Basemap(projection='kav7',lon_0=30)
+m.drawmapboundary(fill_color='#99ffff')
+m.fillcontinents(color='#cc9966',lake_color='#99ffff')
+
+lats = inat_obs_world.latitude
+lons = inat_obs_world.longitude
+x, y = m(lons,lats)
+m.scatter(x,y,3,marker='o',color='k')
+
+plt.title('Locations of %s inat Observations' %\
+        (len(lats)),fontsize=12)
+plt.show()
+```
+
+### Step 3: Intersecting with Country and region Boundaries
+
+We'll overlay these observations on administrative boundaries using `geopandas`.
+
+#### World Bank data
+
+I found a link to these good quality data in the [World Bank Group Data Catalog](https://datacatalog.worldbank.org/search/dataset/0038272/World-Bank-Official-Boundaries)
+
+```{python}
+#| eval: true
+zip_url='https://datacatalogfiles.worldbank.org/ddh-published-v2/0038272/3/DR0046659/wb_countries_admin0_10m.zip'
+r = requests.get(zip_url)
+z = zipfile.ZipFile(io.BytesIO(r.content))
+for j in z.namelist():
+    print(j)
+```
+
+Load the country boundaries from the web by combining the url to the zipfile and the file name within the zipfile: 
+
+```{python}
+#| eval: true
+
+shp_file = "WB_countries_Admin0_10m/WB_countries_Admin0_10m.shp"
+remote_path = 'zip+{}!/{}'.format(zip_url, shp_file)
+
+countries = gpd.read_file(remote_path)
+
+```
+
+And now intersect the data with a spatial join:
+
+```{python}
+#| eval: true
+obs_with_countries = inat_obs_world.sjoin(countries, how='left')
+```
+
+But wait, we have some observations unassigned to countries:
+
+```{python}
+#| eval: true
+obs_with_countries.loc[obs_with_countries.WB_NAME.isna()]
+```
+
+We can improve this by using a join based on the *nearest* feature, but we will need to use an appropriate projection (for example the Eckert IV projection, `ESRI:54012`):
+
+```{python}
+obs_with_countries = gpd.sjoin_nearest(
+    inat_obs_world.to_crs("ESRI:54012"), 
+    countries.to_crs("ESRI:54012"), 
+    distance_col="distances", 
+    how="left")
+
+```
+
+#### ASGS structure
+
+Since we have so many observations in Australia, we could break these down by regional areas. For example using the Australian Statistical Geographical Standard structure.
+
+We go through similar steps as before, first check the zipfile:
+
+```{python}
+zip_url='https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3/jul2021-jun2026/access-and-downloads/digital-boundary-files/SA4_2021_AUST_SHP_GDA2020.zip'
+r = requests.get(zip_url)
+z = zipfile.ZipFile(io.BytesIO(r.content))
+for j in z.namelist():
+    print(j)
+```
+
+Read the data from the url:
+
+```{python}
+shp_file = "SA4_2021_AUST_GDA2020.shp"
+remote_path = 'zip+{}!/{}'.format(zip_url, shp_file)
+australia = gpd.read_file(zip_url)
+```
+
+Use the join with the nearest feature but truncate to 50 km maximum distance:
+
+```{python}
+
+obs_with_countries_and_regions = gpd.sjoin_nearest(
+    obs_with_countries, 
+    australia.to_crs("ESRI:54012"), 
+    distance_col="distances", 
+    how="left", 
+    max_distance=50000,
+    lsuffix='global',
+    rsuffix='australia')
+```
+
+Let's double check that observations with Australian regional data come from Australia:
+
+```{python}
+#| eval: true
+obs_with_countries_and_regions.loc[
+    obs_with_countries_and_regions.STE_NAME21.notna(),
+    "WB_NAME"].value_counts()
+```
+
+And from which countries do the observations without Australian regional data come from?
+
+```{python}
+#| eval: true
+obs_with_countries_and_regions.loc[
+    obs_with_countries_and_regions.STE_NAME21.isna(),
+    "WB_NAME"].value_counts()
+```
+
+We will need to fill in a placeholder value here to show these in the plot below:
+
+```{python}
+obs_with_countries_and_regions.loc[
+    obs_with_countries_and_regions.STE_NAME21.isna(),
+    "STE_NAME21"] = "..."
+```
+
+
+
+### Step 4: Interactive Graphs by Continent, Country, and Region
+
+Finally, we’ll visualize the complete data using an interactive sunburst plot in `plotly`.
+
+We start by grouping our data using continent, country and state and counting the number of unique species and places names.
+
+```{python}
+aggfuncs = {'species guess':['count',pd.Series.nunique],
+           'location':['count',pd.Series.nunique]}
+colnames= ['CONTINENT','WB_NAME', # from Worldbank data
+    'STE_NAME21'] # from ASGS data
+obs_by_group=obs_with_countries_and_regions.groupby(colnames).agg(aggfuncs).reset_index()
+obs_by_group.columns = [' '.join(col).strip() for col in obs_by_group.columns.values]
+```
+
+Now we create the plotly graph using this object. We can select to visualise data by number of unique species:
+
+```{python}
+fig = px.sunburst(obs_by_group, path=colnames, values='species guess nunique', )
+fig.show()
+```
+
+Or the count of observations based on locations:
+
+```{python}
+fig = px.sunburst(obs_by_group, path=colnames, values='location count', )
+fig.show()
+```
+
+And that's it!
+
+## Conclusion
+
+In summary, we:
+
+1. Downloaded observations with `pyinaturalist`.
+2. Mapped observations on a `basemap` of the world.
+3. Intersected observations with country and state boundaries using `geopandas`.
+4. Created insightful graphs with `plotly`.
+
+These steps transform field observations into engaging digital narratives, offering powerful ways to visualize biodiversity. Whether you're a scientist, a digital cartographer, or a nature enthusiast, these tools can enhance your connection to the natural world.
+
+Happy mapping and exploring! 🌍
+
+Feel free to share your own mapping adventures or ask questions in the comments.

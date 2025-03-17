@@ -1,0 +1,12 @@
+{
+  "hash": "d76c43fb3a4aa2d979ac7d12a774163f",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\ntitle: \"Basemaps for World Heritage sites\"\nauthor: \"José R. Ferrer-Paris\"\ndate: \"2025-02-24\"\ncategories: [Python, basemap]\ndraft: true\n---\n\n::: {#9f9deae6 .cell execution_count=1}\n``` {.python .cell-code}\nlong=float(node.find('longitude').text)\nlat=float(node.find('latitude').text)\nname=node.find('site').text\nplt.figure(figsize=(8, 8))\nm = Basemap(projection='ortho', resolution=None, lat_0=lat, lon_0=long)\nm.bluemarble(scale=0.5);\nx, y = m(long, lat)\nplt.plot(x, y, 'ok', markersize=5)\nplt.text(x, y, ' ' + name, fontsize=12);\nfig = plt.figure(figsize=(5, 5))\nm = Basemap(projection='lcc', resolution=None,\n            width=7E6, height=7E6, \n            lat_0=lat, lon_0=long,)\nm.etopo(scale=0.5, alpha=0.5)\n\n# Map (long, lat) to (x, y) for plotting\nx, y = m(long, lat)\nplt.plot(x, y, 'ok', markersize=5)\nplt.text(x, y, ' ' + name, fontsize=7);\n\nfig = plt.figure(figsize=(8, 6), edgecolor='w')\nm = Basemap(projection='cyl', resolution=None,\n            llcrnrlat=-90, urcrnrlat=90,\n            llcrnrlon=-180, urcrnrlon=180, )\ndraw_map(m)\nx, y = m(long, lat)\nplt.plot(x, y, 'ok', markersize=5)\nplt.text(x, y, ' ' + name, fontsize=7);\n\n\n# make up some data for scatter plot\nlats = np.random.randint(-75, 75, size=20)\nlons = np.random.randint(-179, 179, size=20)\n\nfig = plt.gcf()\nfig.set_size_inches(8, 6.5)\n\nm = Basemap(projection='merc', \\\n            llcrnrlat=-80, urcrnrlat=80, \\\n            llcrnrlon=-180, urcrnrlon=180, \\\n            lat_ts=20, \\\n            resolution='c')\n\nm.bluemarble(scale=0.2)   # full scale will be overkill\nm.drawcoastlines(color='white', linewidth=0.2)  # add coastlines\n\nx, y = m(lons, lats)  # transform coordinates\nplt.scatter(x, y, 10, marker='o', color='Red') \n\nplt.show()\n```\n:::\n\n\n",
+    "supporting": [
+      "index_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

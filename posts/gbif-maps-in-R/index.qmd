@@ -1,0 +1,197 @@
+---
+title: "Mapping occurrence data from GBIF"
+author: "José R. Ferrer-Paris"
+date: "2025-02-19"
+draft: false
+categories: [R code, GBIF, iNaturalist, Leaflet, ggplot2, Venezuela]
+editor_options: 
+  chunk_output_type: console
+image: "https://live.staticflickr.com/185/427211270_da66a51b59.jpg"
+image-alt: "NeoMapas"
+bibliography: references.bib
+---
+
+## Introduction
+
+Hello, bird lovers and data enthusiasts! Today, we're diving into a colorful world of Amazona parrots in Venezuela. 
+
+As part of the NeoMaps initiative [@FerrerParis_NeoMapas_2024] we published a dataset of occurrence records of the Amazona parrots in Venezuela [@ferrerparis2013dhfe]. 
+
+Today, I want explore this dataset, create interactive maps with `leaflet`, and visualize the occurrence records of the different species using R.
+
+
+## Dataset Overview
+
+Our dataset of Amazona parrots in Venezuela is available at [PANGAEA](https://doi.org/10.1594/PANGAEA.803430), it has been ingested by the Global Biodiversity Information Facility and has been cited multiple times in the scientific literature:
+
+<iframe src="https://www.gbif.org/api/widgets/literature/latest?gbifDatasetKey=dd282bd6-6e30-4f02-bb36-6bdae0a46090" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen="false" style="width: 100%; height: 350px;"></iframe>
+
+It has occurrence (presence/absence) records of eight species of Amazona during the NeoMaps bird surveys, and I have found that we need to apply some tricks to avoid mixing the absences with the presences when displying this data.
+
+## Tools and Libraries
+
+We'll use the following R packages:
+
+```{r}
+library(rgbif)
+library(leaflet)
+library(gameofthrones)
+library(ggplot2)
+library(dplyr)
+```
+
+:::{.aside}
+
+- **[rgbif](https://cran.r-project.org/web/packages/rgbif/index.html)**: Interface to access GBIF data.
+- **[leaflet](https://rstudio.github.io/leaflet/)**: Create interactive maps with ease.
+- **[dplyr](https://dplyr.tidyverse.org/)**: Data manipulation with a simple and intuitive syntax.
+- **[gameofthrones](https://github.com/aljrico/gameofthrones)**: Why not? Let's have some fun with the colour palette.
+
+:::
+
+## Step-by-Step Guide
+
+
+### Step 1: A quick map of the dataset
+
+With a few lines of code we can construct a Leaflet map based on the GBIF maps API without much sweat.
+
+Get the dataset key, call the maps API with the occurrence density and a base map:
+
+```{r}
+dataset_key <- "dd282bd6-6e30-4f02-bb36-6bdae0a46090"
+
+gbif_map_occ <- sprintf('https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}@2x.png?style=purpleYellow.poly&bin=hex&hexPerTile=32&datasetKey=%s&srs=EPSG%%3A3857',
+ dataset_key)
+
+gbif_map_url <- 'https://tile.gbif.org/3857/omt/{z}/{x}/{y}@1x.png?style=gbif-natural'
+```
+
+And add these together with these lines of code:
+
+```{r}
+leaflet() |>
+  setView(lng = -65, lat = 8, zoom = 5) |>
+  addTiles(urlTemplate = gbif_map_url) |>
+  addTiles(urlTemplate = gbif_map_occ) 
+```
+
+:::{.aside} 
+This is based on examples at <https://tile.gbif.org/ui/> and <https://techdocs.gbif.org/en/openapi/v2/maps>
+:::
+
+This map shows the density of the occurrence records, both presences and absences for all species recorded.
+
+### Step 2: Accessing the Dataset
+
+We'll use the `rgbif` package to download and explore the presence records found within the dataset.
+
+First we query how many record are there:
+
+```{r}
+all_occurrences <- occ_search(datasetKey = dataset_key, limit = 0) 
+```
+
+Now we will construct the query in a way that the GBIF API will only return the true presence records (number of observed individuals larger than 1).
+
+```{r}
+nonzero_occurrences <- occ_search(datasetKey = dataset_key,
+  organismQuantity="1,1000", limit = 2000) 
+```
+
+Compare the result counts returned by both queries:
+```{r}
+# Inspect the data
+all_occurrences$meta$count
+nonzero_occurrences$meta$count
+```
+
+For the rest of the code, we will focus on the downloaded presence records
+
+```{r}
+count_ds <- nonzero_occurrences$data 
+glimpse(count_ds)
+```
+
+
+### Step 3: Data Analysis and Visualization
+
+Let’s use `dplyr` and `ggplot2` to summarise and visualise the number of records per species.
+
+```{r}
+# Group by species and count occurrences
+species_counts <- count_ds |>
+  group_by(scientificName) |>
+  summarise(count = n(),
+    inds=sum(organismQuantity))
+
+# Plot species occurrences
+species_plot <- ggplot(species_counts, aes(x = reorder(scientificName, count), y = count)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Occurrence of Amazona Parrots in Venezuela",
+       x = "Species", y = "Occurrences") +
+  theme_minimal()
+
+# Display the plot
+print(species_plot)
+```
+
+
+### Step 4: Interactive Mapping with Leaflet
+
+Now, let’s visualize our parrot species on a map using `leaflet`.
+
+First let's create a palette of colours for all species in our dataset:
+```{r}
+species <- unique(count_ds$scientificName)
+pal <- got(length(species), option = "Daenerys")
+names(pal) <- species
+```
+
+Now we initialise a leaflet map with the gbif basemap:
+```{r}
+#| eval: true
+
+# Create a leaflet map with different species layers
+map <- leaflet() |>
+  addTiles(urlTemplate = gbif_map_url)
+```
+
+We add the presence records for each species:
+
+```{r}
+# Split data by species and add to map
+for (sN in species) {
+  x <- count_ds |>
+    filter(scientificName %in% sN) 
+  map <- map |> addCircleMarkers( data = x,
+                     lng = ~decimalLongitude, lat = ~decimalLatitude,
+                     popup = ~paste("Species:", sN),
+                     radius = 5,
+                     color = pal[[sN]],
+                     fillOpacity = 0.85,
+                     group = sN)
+}
+```
+
+We add the layer control and display the map:
+```{r}
+# Add layer controls
+map <- map |> addLayersControl(
+  overlayGroups = unique(count_ds$scientificName),
+  options = layersControlOptions(collapsed = FALSE)
+)
+
+# Display the map
+map
+```
+
+
+## Conclusion
+
+In summary, we successfully accessed and mapped the occurrences of Amazona parrots in Venezuela using the powerful GBIF dataset. We employed interactive maps with `leaflet` and enriched our understanding through visualizations, unveiling the beauty and distribution of these incredible parrots.
+
+If you're involved in conservation, a researcher, or simply a nature lover, these tools provide an excellent way to explore and visualize biodiversity data.
+
+Happy bird watching and mapping! 🦜🌍
