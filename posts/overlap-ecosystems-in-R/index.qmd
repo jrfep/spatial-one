@@ -1,0 +1,140 @@
+---
+title: "Ecosystems of Venezuela"
+author: "José R. Ferrer-Paris"
+date: "2025-03-20"
+draft: true
+categories: [R code, GBIF, iNaturalist, Leaflet, ggplot2, Venezuela]
+editor_options: 
+  chunk_output_type: console
+image: "https://live.staticflickr.com/185/427211270_da66a51b59.jpg"
+image-alt: "NeoMapas"
+---
+
+# Calculating Overlap of Ecosystem Functional Groups with Country Boundaries in R using Terra
+
+## Introduction
+
+We'll calculate the overlap of raster-based indicative distribution maps for Ecosystem Functional Groups with Venezuela’s boundaries, using the `terra` package for modern raster handling.
+
+## Tools and Libraries
+
+You'll need these R packages:
+- **[sf](https://r-spatial.github.io/sf/)**: For spatial vector data.
+- **[terra](https://cran.r-project.org/web/packages/terra/index.html)**: Updated raster handling and analysis.
+- **[dplyr](https://dplyr.tidyverse.org/)**: Data manipulation.
+
+## Step-by-Step Guide
+
+### Step 1: Load Required Libraries
+
+```{r}
+library(sf)
+library(terra)
+library(dplyr)
+library(zen4R)
+```
+
+
+We use library `here` to define relative paths
+```{r}
+here::i_am("posts/overlap-ecosystems-in-R/index.qmd")
+```
+
+We will create a folder for downloading the data:
+
+```{r}
+out_folder <- here::here("sandbox")
+if (!dir.exists(out_folder))
+    dir.create(out_folder, recursive = TRUE)
+```
+
+### Download from Zenodo
+
+Following the [detailed download instructions](https://red-list-ecosystem.github.io/typology-map-info/how2/download-with-R.html), first we check the DOI of the selected map:
+
+```{r}
+doi = "10.5281/zenodo.5090450"
+ZR <- get_zenodo(doi=doi)
+(newest_doi <- ZR$getLastDOI())
+```
+
+This is the list of files in the zenodo repository:
+
+```{r}
+ZR$listFiles()
+```
+
+We will create a folder for this direct download from zenodo for the latest version of the data:
+
+```{r}
+#| eval: true
+check <- ZR$listFiles()$filename %in% dir(out_folder)
+
+if (any(check %in% FALSE)) {
+    download_zenodo(doi=newest_doi, path=out_folder)
+}
+```
+
+
+### Step 2: Load Ecosystem Functional Groups Data
+
+Make sure your ecosystem data is in a GeoTIFF format.
+
+```{r}
+ecosystem_raster <- rast(here::here(out_folder, "T1.1.web.mix_v2.0.tif"))
+```
+
+### Step 3: Load Country Boundaries
+
+You can use a shapefile for Venezuela's boundaries.
+
+`sh ogrinfo /vsizip/vsicurl/https://geodata.ucdavis.edu/diva/adm/VEN_adm.zip`
+
+
+```{r}
+zip_url <- "https://geodata.ucdavis.edu/diva/adm/VEN_adm.zip"
+# Load Venezuela boundary data
+venezuela <- st_read(sprintf("/vsizip/vsicurl/%s", zip_url), layer="VEN_adm0")  # Replace with your file path
+
+# Convert to the same CRS as the raster
+venezuela <- st_transform(venezuela, crs = crs(ecosystem_raster))
+```
+
+### Step 4: Calculate Overlap
+
+We’ll use `terra` to mask the raster with Venezuela's boundaries and measure the overlap.
+
+```{r}
+# Mask the raster with Venezuela boundaries
+ecosystem_masked <- mask(ecosystem_raster, venezuela)
+
+# Calculate area of overlap
+# Assuming each cell represents a certain area (e.g., in hectares)
+cell_area <- res(ecosystem_raster)[1] * res(ecosystem_raster)[2]
+overlap_area <- cell_area * sum(!is.na(values(ecosystem_masked)), na.rm = TRUE)
+
+print(paste("Total overlap area:", overlap_area, "square units"))
+```
+
+### Step 5: Visualize the Results
+
+Visualize the overlap using `plot`.
+
+```r
+# Plot the masked raster
+plot(ecosystem_masked, main = "Ecosystem Functional Groups in Venezuela")
+plot(st_geometry(venezuela), add = TRUE, col = NA, border = "red")
+```
+
+## Conclusion
+
+In this workflow, we've:
+1. Loaded ecosystem data using `terra` for modern raster handling.
+2. Used Venezuela's boundaries to mask and analyze overlapping areas.
+3. Calculated and visualized the overlay of ecosystems.
+
+This approach facilitates a robust understanding of ecosystem distribution, aiding ecological and conservation efforts.
+
+Feel free to adjust the code for more specific analysis requirements.
+
+Happy mapping and analyzing! 🌍

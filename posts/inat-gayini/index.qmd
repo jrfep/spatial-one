@@ -2,11 +2,14 @@
 title: "Monitoring an iNaturalist project"
 author: "José R. Ferrer-Paris"
 date: "2025-02-18"
+date-modified: last-modified
 categories: [Python, iNaturalist, Altair, Australia, folium, leaflet, Gayini]
 from: markdown
 editor_options: 
   chunk_output_type: console
 engine: jupyter
+image: "https://inaturalist-open-data.s3.amazonaws.com/photos/482837096/medium.jpeg"
+image-alt: "*Australian pelican* observed by NeoMapas in iNaturalist"
 ---
 
 I need to bring together some of the tools and tricks I have written about in previous posts in order to monitor a project in [iNaturalist](https://www.inaturalist.org/home).
@@ -63,6 +66,10 @@ observations['total_results']
 ```
 
 Not too many observations, as I said, this project is just getting started. Gayini is a great place to observe wildlife, but is a remote place. Hopefully this code will be re-usable in future years to make comparable visualisation after more people have collected information on animals and plants.
+
+:::{.aside}
+**Update**: Well the number of total results is now larger than 200, that means that the code only shows the most recent 200 obs.
+:::
 
 ## Taxonomic visualisation
 
@@ -176,6 +183,10 @@ We can now group the observations by year and count the number of observations a
 ```{python}
 observations_by_year = df.groupby('Year')['species_name'].agg([ 'count', 'nunique']).reset_index()
 ```
+
+:::{.aside}
+**Update**: The plots look now biased because they are based on the most recent 200 obs.
+:::
 
 With this summary of the grouped data, we build a barchart similar as the examples above:
 
@@ -309,6 +320,13 @@ for obs in observations['results']:
     else:
         desc = "Observation is not research quality grade."
         pincolor = 'gray'
+    if len(obs['observation_photos'])>0:
+        photo = obs['observation_photos'][0]['photo']
+        photourl = photo['url']
+        photoattr = photo['attribution']
+    else:
+        photourl = "https://static.inaturalist.org/wiki_page_attachments/3154-original.png"
+        photoattr = obs['user']
     fg.add_child(
         folium.Marker(
             location=obs['location'],
@@ -316,8 +334,8 @@ for obs in observations['results']:
                species=obs['species_guess'],
                 observed_on=obs['observed_on'],
                 desc=desc,
-               url = obs['observation_photos'][0]['photo']['url'],
-               attribution = obs['observation_photos'][0]['photo']['attribution']),
+               url = photourl,
+               attribution = photoattr),
             icon=folium.Icon(color=pincolor),
         )
       )
