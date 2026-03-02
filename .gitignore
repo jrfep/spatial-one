@@ -6,3 +6,4 @@ _site
 .Rproj.user
 .venv
 _pruebas/
+**/*.quarto_ipynb
