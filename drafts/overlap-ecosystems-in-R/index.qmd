@@ -6,6 +6,8 @@ draft: true
 categories: [R code, GBIF, iNaturalist, Leaflet, ggplot2, Venezuela]
 editor_options: 
   chunk_output_type: console
+execute: 
+  eval: false
 image: "https://live.staticflickr.com/185/427211270_da66a51b59.jpg"
 image-alt: "NeoMapas"
 ---
@@ -67,7 +69,6 @@ ZR$listFiles()
 We will create a folder for this direct download from zenodo for the latest version of the data:
 
 ```{r}
-#| eval: true
 check <- ZR$listFiles()$filename %in% dir(out_folder)
 
 if (any(check %in% FALSE)) {
