@@ -67,7 +67,7 @@ packageVersion("redlistr")
 I will also define a color palette that I will use for the visualizations in this post. This palette includes a range of colors that I find visually appealing and suitable for representing different elements in the maps and plots.
 
 :::{.aside}
-These colours are inspired by [Guayasamín](https://es.wikipedia.org/wiki/Oswaldo_Guayasam%C3%ADn)'s [paintings](https://www.wikiart.org/en/oswaldo-guayasamin) like this one: <a title="Asamblea Nacional  del Ecuador from QUito, Ecuador, CC BY-SA 2.0 &lt;https://creativecommons.org/licenses/by-sa/2.0&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:SESI%C3%93N_NO._813_DEL_PLENO_DE_LA_ASAMBLEA_NACIONAL._ECUADOR_18_NOVIEMBRE_2022_(52508353901).jpg"><img width="250" alt="SESIÓN NO. 813 DEL PLENO DE LA ASAMBLEA NACIONAL. ECUADOR 18 NOVIEMBRE 2022 (52508353901)" src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/SESI%C3%93N_NO._813_DEL_PLENO_DE_LA_ASAMBLEA_NACIONAL._ECUADOR_18_NOVIEMBRE_2022_%2852508353901%29.jpg/512px-SESI%C3%93N_NO._813_DEL_PLENO_DE_LA_ASAMBLEA_NACIONAL._ECUADOR_18_NOVIEMBRE_2022_%2852508353901%29.jpg?_=20221119140241"></a>
+These colours are inspired by [Guayasamín](https://es.wikipedia.org/wiki/Oswaldo_Guayasam%C3%ADn)'s [paintings](https://www.wikiart.org/en/oswaldo-guayasamin) like this one: <a title="Asamblea Nacional  del Ecuador from QUito, Ecuador, CC BY-SA 2.0 &lt;https://creativecommons.org/licenses/by-sa/2.0&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:SESI%C3%93N_NO._813_DEL_PLENO_DE_LA_ASAMBLEA_NACIONAL._ECUADOR_18_NOVIEMBRE_2022_(52508353901).jpg"><img width="256" alt="SESIÓN NO. 813 DEL PLENO DE LA ASAMBLEA NACIONAL. ECUADOR 18 NOVIEMBRE 2022 (52508353901)" src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/SESI%C3%93N_NO._813_DEL_PLENO_DE_LA_ASAMBLEA_NACIONAL._ECUADOR_18_NOVIEMBRE_2022_%2852508353901%29.jpg/256px-SESI%C3%93N_NO._813_DEL_PLENO_DE_LA_ASAMBLEA_NACIONAL._ECUADOR_18_NOVIEMBRE_2022_%2852508353901%29.jpg?_=20221119140241"></a>
 :::
 ```{r}
 clrs <- c(
@@ -177,7 +177,7 @@ I will focus on a couple of species that are endemic to the Galápagos Islands a
 ### *Nannopterum harrisi*
 
 :::{.aside}
-<a title="John Gerrard Keulemans, Public domain, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Phalarocorax_harrisiDI09P10CA.jpg"><img width="250" alt="Phalarocorax harrisiDI09P10CA" src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Phalarocorax_harrisiDI09P10CA.jpg/256px-Phalarocorax_harrisiDI09P10CA.jpg?_=20060410220203"></a>
+<a title="John Gerrard Keulemans, Public domain, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Phalarocorax_harrisiDI09P10CA.jpg"><img width="256" alt="Phalarocorax harrisiDI09P10CA" src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Phalarocorax_harrisiDI09P10CA.jpg/256px-Phalarocorax_harrisiDI09P10CA.jpg?_=20060410220203"></a>
 :::
 
 *Nannopterum harrisi* is endemic to the Galápagos Islands, Ecuador. It is found around most of the coast of Fernandina Island (mainly on the east), as well as on the north, northeast and west coasts of Isabela Island (Valle and Coulter 1987, H. Vargas and F. Cruz in litt. 2000).
@@ -203,7 +203,7 @@ n_harrisi <- taxon_occ$data |>
 ### *Scalesia pedunculata* and the Scalesia forests
 
 :::{.aside}
-<a title="Joseph Dalton Hooker (1817-1911), Matilda Smith (1854–1926), Public domain, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Scalesia_pedunculata03.jpg"><img width="250" alt="Scalesia pedunculata03" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Scalesia_pedunculata03.jpg/256px-Scalesia_pedunculata03.jpg?_=20130729133726"></a>
+<a title="Joseph Dalton Hooker (1817-1911), Matilda Smith (1854–1926), Public domain, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Scalesia_pedunculata03.jpg"><img width="256" alt="Scalesia pedunculata03" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Scalesia_pedunculata03.jpg/256px-Scalesia_pedunculata03.jpg?_=20130729133726"></a>
 :::
 
 The [Scalesia forest](https://www.galapagos.org/newsroom/scalesia/) is a unique ecosystem found in the Galápagos Islands, characterized by the presence of the Tree daisy (*Scalesia pedunculata*). These forests are important for biodiversity and are also of conservation concern due to habitat loss and other threats.
